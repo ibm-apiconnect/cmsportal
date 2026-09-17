@@ -27,7 +27,7 @@ class SocialBlockController extends ControllerBase {
     $data = $request->query->get('data');
   
     if ($data) {
-      \Drupal::messenger()->addError("Security policy violation reported. " . $data);
+      \Drupal::messenger()->addError($this->t("Security policy violation reported. ") . $data);
     }
     return new JsonResponse(['status' => 'ok']);
   }

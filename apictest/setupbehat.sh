@@ -54,7 +54,7 @@ else
 
   echo Extracting packaged behat drupal-extensions
   cd $BASEDIR/vendor
-  tar -xf $APICTESTDIR/behat/behat-package.tar.gz
+  tar -xf $APICTESTDIR/behat/behat-package-5.1.0.tar.gz
 
   echo Installing drupal behat extensions
   cd $BASEDIR/vendor/drupal/drupal-extension
@@ -98,10 +98,10 @@ export APICTEST_BEHAT_OPTS=$BEHAT_OPTS
 # remove honeypot as it gets in the way of form submissions
 # remove check_dns so we can use @example.com email addresses in auth_apic tests
 cd $SITE_PATH
-drush pm-uninstall big_pipe honeypot check_dns r4032login
+drush @${SITE_ALIAS} pm-uninstall big_pipe honeypot check_dns r4032login
 
 echo "Enabling errors and warnings level debug"
-drush config-set system.logging error_level verbose
+drush @${SITE_ALIAS} config-set system.logging error_level verbose
 
 cd $APICTESTDIR
 

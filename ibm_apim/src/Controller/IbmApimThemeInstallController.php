@@ -136,98 +136,95 @@ class IbmApimThemeInstallController extends ThemeController {
   /**
    * Installs a theme.
    *
-   * @param \Symfony\Component\HttpFoundation\Request $request
+   * @param string $theme
+   *   The theme name.
    *
-   * @return \Symfony\Component\HttpFoundation\RedirectResponse
+   * @return mixed
    * @throws \Drupal\Core\Extension\ExtensionNameLengthException|\Drupal\Core\Extension\MissingDependencyException
    */
-  public function install(Request $request): RedirectResponse {
-    $theme = $request->query->get('theme');
-
-    if (isset($theme)) {
-      try {
-        if ($this->themeInstaller->install([$theme])) {
-          $themes = $this->themeHandler->listInfo();
-          $this->messenger->addMessage($this->t('The %theme theme has been enabled.', ['%theme' => $themes[$theme]->info['name']]));
-
-          if (isset($themes[$theme]->info['auto_build_scss']) && $themes[$theme]->info['auto_build_scss']) {
-            $this->compile_scss($theme);
-          }
-        }
-        else {
-          $this->messenger->addError($this->t('The %theme theme was not found.', ['%theme' => $theme]));
-        }
-      } catch (PreExistingConfigException $e) {
-        $config_objects = $e::flattenConfigObjects($e->getConfigObjects());
-        $this->messenger->addError(
-          $this->formatPlural(
-            count($config_objects),
-            'Unable to enable @extension, %config_names already exists in active configuration.',
-            'Unable to enable @extension, %config_names already exist in active configuration.',
-            [
-              '%config_names' => implode(', ', $config_objects),
-              '@extension' => $theme,
-            ]));
-      } catch (UnmetDependenciesException $e) {
-        $this->messenger->addError($e->getTranslatedMessage($this->getStringTranslation(), $theme));
-      }
-
-      return $this->redirect('system.themes_page');
+  public function install(string $theme): mixed {
+    if ($this->willInstallExperimentalTheme($theme)) {
+      return parent::install($theme);
     }
 
-    throw new AccessDeniedHttpException();
-  }
-
-  /**
-   * Set the default theme.
-   *
-   * @param \Symfony\Component\HttpFoundation\Request $request
-   *
-   * @return \Symfony\Component\HttpFoundation\RedirectResponse
-   * @throws \Drupal\Core\Extension\ExtensionNameLengthException|\Drupal\Core\Extension\MissingDependencyException
-   */
-  public function setDefaultTheme(Request $request): RedirectResponse {
-    $config = $this->configFactory->getEditable('system.theme');
-    $theme = $request->query->get('theme');
-
-    if (isset($theme)) {
-      // Get current list of themes.
-      $themes = $this->themeHandler->listInfo();
-
-      // Check if the specified theme is one recognized by the system.
-      // Or try to install the theme.
-      if (isset($themes[$theme]) || $this->themeInstaller->install([$theme])) {
+    try {
+      if ($this->themeInstaller->install([$theme])) {
         $themes = $this->themeHandler->listInfo();
+        $this->messenger->addMessage($this->t('The %theme theme has been enabled.', ['%theme' => $themes[$theme]->info['name']]));
 
         if (isset($themes[$theme]->info['auto_build_scss']) && $themes[$theme]->info['auto_build_scss']) {
           $this->compile_scss($theme);
-        }
-
-        // Set the default theme.
-        $config->set('default', $theme)->save();
-
-        // The status message depends on whether an admin theme is currently in
-        // use: a value of 0 means the admin theme is set to be the default
-        // theme.
-        $admin_theme = $config->get('admin');
-        if ((int) $admin_theme !== 0 && $admin_theme !== $theme) {
-          $this->messenger->addMessage($this->t('Please note that the administration theme is still set to the %admin_theme theme; consequently, the theme on this page remains unchanged. All non-administrative sections of the site, however, will show the selected %selected_theme theme by default.', [
-            '%admin_theme' => $themes[$admin_theme]->info['name'],
-            '%selected_theme' => $themes[$theme]->info['name'],
-          ]));
-        }
-        else {
-          $this->messenger->addMessage($this->t('%theme is now the default theme.', ['%theme' => $themes[$theme]->info['name']]));
         }
       }
       else {
         $this->messenger->addError($this->t('The %theme theme was not found.', ['%theme' => $theme]));
       }
-
-      return $this->redirect('system.themes_page');
-
     }
-    throw new AccessDeniedHttpException();
+    catch (PreExistingConfigException $e) {
+      $config_objects = $e::flattenConfigObjects($e->getConfigObjects());
+      $this->messenger->addError(
+        $this->formatPlural(
+          count($config_objects),
+          'Unable to enable @extension, %config_names already exists in active configuration.',
+          'Unable to enable @extension, %config_names already exist in active configuration.',
+          [
+            '%config_names' => implode(', ', $config_objects),
+            '@extension' => $theme,
+          ]));
+    }
+    catch (UnmetDependenciesException $e) {
+      $this->messenger->addError($e->getTranslatedMessage($this->getStringTranslation(), $theme));
+    }
+
+    return $this->redirect('system.themes_page');
+  }
+
+  /**
+   * Set the default theme.
+   *
+   * @param string $theme
+   *   The theme name.
+   *
+   * @return mixed
+   * @throws \Drupal\Core\Extension\ExtensionNameLengthException|\Drupal\Core\Extension\MissingDependencyException
+   */
+  public function setDefaultTheme(string $theme): mixed {
+    $config = $this->configFactory->getEditable('system.theme');
+
+    // Get current list of themes.
+    $themes = $this->themeHandler->listInfo();
+
+    // Check if the specified theme is one recognized by the system.
+    // Or try to install the theme.
+    if (isset($themes[$theme]) || $this->themeInstaller->install([$theme])) {
+      $themes = $this->themeHandler->listInfo();
+
+      if (isset($themes[$theme]->info['auto_build_scss']) && $themes[$theme]->info['auto_build_scss']) {
+        $this->compile_scss($theme);
+      }
+
+      // Set the default theme.
+      $config->set('default', $theme)->save();
+
+      // The status message depends on whether an admin theme is currently in
+      // use: a value of 0 means the admin theme is set to be the default
+      // theme.
+      $admin_theme = $config->get('admin');
+      if (!empty($admin_theme) && $admin_theme !== $theme) {
+        $this->messenger->addMessage($this->t('Please note that the administration theme is still set to the %admin_theme theme; consequently, the theme on this page remains unchanged. All non-administrative sections of the site, however, will show the selected %selected_theme theme by default.', [
+          '%admin_theme' => $themes[$admin_theme]->info['name'],
+          '%selected_theme' => $themes[$theme]->info['name'],
+        ]));
+      }
+      else {
+        $this->messenger->addMessage($this->t('%theme is now the default theme.', ['%theme' => $themes[$theme]->info['name']]));
+      }
+    }
+    else {
+      $this->messenger->addError($this->t('The %theme theme was not found.', ['%theme' => $theme]));
+    }
+
+    return $this->redirect('system.themes_page');
   }
 
   /**

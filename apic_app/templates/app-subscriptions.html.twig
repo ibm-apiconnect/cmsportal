@@ -1,9 +1,26 @@
+{#
+/********************************************************* {COPYRIGHT-TOP} ***
+ * Licensed Materials - Property of IBM
+ * 5725-L30, 5725-Z22
+ *
+ * (C) Copyright IBM Corporation 2018, 2026
+ *
+ * All Rights Reserved.
+ * US Government Users Restricted Rights - Use, duplication or disclosure
+ * restricted by GSA ADP Schedule Contract with IBM Corp.
+ ********************************************************** {COPYRIGHT-END} **/
+#}
 <div class="apicAppSubscriptions">
   <div class="applicationSubscriptions">
     <div class="subscriptionsTable">
       <div class="subscriptionsHeader">
         <div class="subscriptionsTitle">{% trans %}Product subscriptions{% endtrans %}</div>
       </div>
+      {% if exposed_form is defined and exposed_form %}
+        <div class="subscriptionsSort">
+          {{ exposed_form }}
+        </div>
+      {% endif %}
       <div class="subscriptionsContent">
         <table>
           <thead>

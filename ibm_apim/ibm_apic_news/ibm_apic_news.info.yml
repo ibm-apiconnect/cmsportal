@@ -9,3 +9,6 @@ dependencies:
   - block
   - block_content
   - options
+  - language
+  - locale
+  - content_translation

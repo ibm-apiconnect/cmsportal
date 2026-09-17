@@ -58,8 +58,8 @@ class SubscriptionStatusFilter extends InOperator implements ContainerFactoryPlu
     }
 
     $this->valueOptions = [
-      'Subscribed To',
-      'Not Subscribed To'
+      $this->t('Subscribed To'),
+      $this->t('Not Subscribed To')
     ];
 
     return $this->valueOptions;
@@ -92,6 +92,11 @@ class SubscriptionStatusFilter extends InOperator implements ContainerFactoryPlu
    * {@inheritdoc}
    */
   public function query() {
+    // When not exposed, don't filter, show all products
+    if (!($this->options['exposed'] ?? FALSE)) {
+      return;
+    }
+
     $this->ensureMyTable();
 
     $value = isset($this->value) ? (bool) $this->value[0] : FALSE;

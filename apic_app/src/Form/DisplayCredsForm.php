@@ -92,10 +92,13 @@ class DisplayCredsForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state, NodeInterface $appId = NULL): array {
-    if ($appId !== NULL) {
-      $this->node = $appId;
+  public function buildForm(array $form, FormStateInterface $form_state): array {
+    $route_match = \Drupal::routeMatch();
+    if ($route_match->getParameter('appId') !== NULL) {
+      // The AppIdParamConverter has already converted the appId to a node
+      $this->node = $route_match->getParameter('appId');
     }
+
     $credentials = $this->app_store->get('credentials');
     if (!isset($credentials)) {
       $form = [];

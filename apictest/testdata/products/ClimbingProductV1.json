@@ -3,7 +3,7 @@
     "version": "1.0.0",
     "title": "Climbing Weather",
     "name": "climbing-weather",
-    "x-pathalias": "climbingweather"
+    "x-pathalias": "climbingweatherv1"
   },
   "apis": {
     "climbing-weather-api1.0.0": {

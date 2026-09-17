@@ -117,7 +117,7 @@ class ApplicationController extends ControllerBase {
    *
    * @return \Symfony\Component\HttpFoundation\RedirectResponse
    */
-  public function applicationView(NodeInterface $appId = NULL): RedirectResponse {
+  public function applicationView(?NodeInterface $appId = NULL): RedirectResponse {
     return $this->redirect('entity.node.canonical', ['node' => $appId->id()]);
   }
 
@@ -136,7 +136,7 @@ class ApplicationController extends ControllerBase {
    * @return array|Response
    * @throws \Drupal\Core\TempStore\TempStoreException|\JsonException
    */
-  public function activity(NodeInterface $node = NULL) {
+  public function activity(?NodeInterface $node = NULL) {
     if (isset($node)) {
       ibm_apim_entry_trace(__CLASS__ . '::' . __FUNCTION__, $node->id());
     }
@@ -270,7 +270,7 @@ class ApplicationController extends ControllerBase {
    * @return array|Response
    * @throws \Drupal\Core\TempStore\TempStoreException|\JsonException
    */
-  public function subscriptions(NodeInterface $node = NULL) {
+  public function subscriptions(?NodeInterface $node = NULL) {
     if (isset($node)) {
       ibm_apim_entry_trace(__CLASS__ . '::' . __FUNCTION__, $node->id());
     }

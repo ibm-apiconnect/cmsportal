@@ -1,3 +1,14 @@
+/********************************************************* {COPYRIGHT-TOP} ***
+ * Licensed Materials - Property of IBM
+ * 5725-L30, 5725-Z22
+ *
+ * (C) Copyright IBM Corporation 2018, 2026
+ *
+ * All Rights Reserved.
+ * US Government Users Restricted Rights - Use, duplication or disclosure
+ * restricted by GSA ADP Schedule Contract with IBM Corp.
+ ********************************************************** {COPYRIGHT-END} **/
+
 .product-view .masonry-layout .masonry-item {
   width: auto;
   border: 0;
@@ -212,6 +223,9 @@ h1.apiName {
 }
 
 .apicProductRating .br-widget a {
+  display: inline-block;
+  padding-inline-start: 6px;
+  margin-inline-start: -6px;
   margin-top: 6px;
  }
 
@@ -452,16 +466,19 @@ ul.apicProductApiList {
 
 .apicTwistieIcon {
   display: inline-block;
-  width: 10px;
+  width: 16px;
+  background: none;
+  border: none;
+  padding: 0;
+  vertical-align: middle;
 }
 
-.apicTwistieIcon .fa {
-  font-weight: bold;
-  color: #393939;
-  transition: .2s;
+.apicTwistieIcon .apicTwistieArrow {
+  fill: var(--icon-primary);
+  transition: transform .2s;
 }
 
-.apicTwistieIcon svg.flip {
+.apicTwistieIcon .apicTwistieArrow.flip {
   transform: rotate(-180deg);
 }
 
@@ -838,7 +855,7 @@ div[class*="planColumn"]:not(:last-of-type) {
   border: none;
   box-shadow: none;
   min-width: 20rem;
-  height: 310px;
+  height: 20rem;
   max-width: 20rem;
 }
 
@@ -1146,6 +1163,10 @@ h3.field__label.label
   flex-wrap: wrap;
 }
 
+.apicPlansList {
+  display: contents;
+}
+
 .apicPlans .planCard {
   display: flex;
   flex-direction: column;
@@ -1267,6 +1288,8 @@ h3.field__label.label
   position: absolute;
   top: 1rem;
   right: 1rem;
+  background: none;
+  border: none;
 }
 
 .planDetail--modalClose svg {
@@ -1301,6 +1324,9 @@ h3.field__label.label
 
 .apicTwistieIcon {
   cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
 }
 
 .twistieRow {

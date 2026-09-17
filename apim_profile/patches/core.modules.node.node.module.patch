@@ -1,10 +1,11 @@
---- core/modules/node/node.module       2025-01-06 22:41:17
-+++ core/modules/node/node.module  2025-01-08 14:35:57
-@@ -582,6 +582,8 @@
-   if (!isset($batch_builder)) {
-     \Drupal::messenger()->addStatus(t('Content permissions have been rebuilt.'));
-     node_access_needs_rebuild(FALSE);
-+  } else {
-+    \Drupal::messenger()->addStatus(t('Content permissions rebuild has been initiated.'));
+--- core/modules/node/src/NodeAccessRebuild.php	2025-01-06 22:41:17
++++ core/modules/node/src/NodeAccessRebuild.php	2025-01-08 14:35:57
+@@ -147,6 +147,8 @@
+     if (!isset($batch_builder)) {
+       $this->messenger->addStatus($this->t('Content permissions have been rebuilt.'));
+       $this->setNeedsRebuild(FALSE);
++    } else {
++      $this->messenger->addStatus($this->t('Content permissions rebuild has been initiated.'));
+     }
    }
- }
+ 

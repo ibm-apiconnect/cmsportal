@@ -91,6 +91,55 @@ class ApplicationContext extends RawDrupalContext {
   }
 
   /**
+   * @Given I subscribe application :app_id to product :product_id with plan :plan
+   * @throws \Drupal\Core\Entity\EntityStorageException
+   */
+  public function subscribeApplicationToProductWithPlan($app_id, $product_id, $plan): void {
+    if ($this->useMockServices === FALSE) {
+      print "This test is running with a real management server backend. No subscriptions will be created in the database.\n";
+      return;
+    }
+
+    $accountSwitcher = \Drupal::service('account_switcher');
+    $originalUser = \Drupal::currentUser();
+    if ((int) $originalUser->id() !== 1) {
+      $accountSwitcher->switchTo(User::load(1));
+    }
+
+    $query = \Drupal::entityQuery('node');
+    $query->condition('type', 'application');
+    $query->condition('application_id.value', $app_id);
+    $results = $query->accessCheck()->execute();
+    if (empty($results)) {
+      if ((int) $originalUser->id() !== 1) {
+        $accountSwitcher->switchBack();
+      }
+      throw new \Exception("Failed to find application with id $app_id");
+    }
+
+    $appNode = Node::load(array_shift($results));
+    $org_url = $appNode?->get('application_consumer_org_url')->value
+      ?? $appNode?->get('consumer_org_url')->value
+      ?? '';
+    $org_parts = explode('/', trim($org_url, '/'));
+    $org_id = end($org_parts) ?: NULL;
+    if ($org_id === NULL) {
+      if ((int) $originalUser->id() !== 1) {
+        $accountSwitcher->switchBack();
+      }
+      throw new \Exception("Failed to determine consumer org id for application $app_id");
+    }
+
+    $random = new Random();
+    $sub_id = $random->name(12);
+    $this->createSubscription($org_id, $app_id, $sub_id, $product_id, $plan);
+
+    if ((int) $originalUser->id() !== 1) {
+      $accountSwitcher->switchBack();
+    }
+  }
+
+  /**
    * @param $org_id
    * @param $app_id
    * @param $sub_id
@@ -488,6 +537,115 @@ class ApplicationContext extends RawDrupalContext {
 
     if ((int) $originalUser->id() !== 1) {
       $accountSwitcher->switchBack();
+    }
+  }
+
+  /**
+   * Subscribe to a product via UI for the current application
+   *
+   * @When I subscribe to product :product with plan :plan
+   * @throws \Exception
+   */
+  public function iSubscribeToProductWithPlan($product, $plan): void {
+    $session = $this->getSession();
+    $page = $session->getPage();
+
+    // Look for "Subscribe" or "Create subscription" button/link
+    $subscribeButton = $page->find('css', 'a[href*="subscribe"], button:contains("Subscribe"), a:contains("Subscribe")');
+    if (!$subscribeButton) {
+      // Try alternative selectors
+      $subscribeButton = $page->find('css', '.subscribe-button, .create-subscription');
+    }
+    
+    if (!$subscribeButton) {
+      throw new \Exception('Could not find Subscribe button on the page');
+    }
+
+    $subscribeButton->click();
+    $session->wait(2000); // Wait for page to load
+
+    // Select the product
+    $productField = $page->find('css', 'select[name*="product"], #edit-product, select#product');
+    if ($productField) {
+      $productField->selectOption($product);
+      $session->wait(1000); // Wait for plan options to load
+    } else {
+      // Try clicking on product card/link
+      $productLink = $page->find('xpath', "//a[contains(text(), '$product')] | //div[contains(@class, 'product')][contains(text(), '$product')]");
+      if ($productLink) {
+        $productLink->click();
+        $session->wait(1000);
+      } else {
+        throw new \Exception("Could not find product: $product");
+      }
+    }
+
+    // Select the plan
+    $planField = $page->find('css', 'select[name*="plan"], #edit-plan, select#plan');
+    if ($planField) {
+      $planField->selectOption($plan);
+    } else {
+      // Try clicking on plan radio button or link
+      $planOption = $page->find('xpath', "//input[@type='radio'][@value='$plan'] | //label[contains(text(), '$plan')]");
+      if ($planOption) {
+        $planOption->click();
+      } else {
+        throw new \Exception("Could not find plan: $plan");
+      }
+    }
+
+    $session->wait(500);
+
+    // Submit the subscription
+    $submitButton = $page->find('css', 'button[type="submit"], input[type="submit"], button:contains("Subscribe"), button:contains("Create")');
+    if (!$submitButton) {
+      throw new \Exception('Could not find submit button for subscription');
+    }
+
+    $submitButton->click();
+    $session->wait(3000); // Wait for subscription to be created
+
+    // Verify success message
+    $successMessage = $page->find('css', '.messages--status, .alert-success, div[role="alert"]');
+    if (!$successMessage) {
+      // Check if we're back on the subscriptions page
+      $currentUrl = $session->getCurrentUrl();
+      if (!str_contains($currentUrl, 'subscription')) {
+        throw new \Exception('Subscription may have failed - no success message and not on subscriptions page');
+      }
+    }
+  }
+
+  /**
+   * Subscribe to multiple products via UI
+   *
+   * @When I subscribe to the following products:
+   * @throws \Exception
+   */
+  public function iSubscribeToProducts(TableNode $table): void {
+    foreach ($table->getHash() as $row) {
+      $product = $row['product'] ?? '';
+      $plan = $row['plan'] ?? '';
+      
+      if (empty($product) || empty($plan)) {
+        throw new \Exception('Product and plan are required for subscription');
+      }
+
+      // Navigate back to application page before each subscription
+      $session = $this->getSession();
+      $page = $session->getPage();
+      
+      // Find and click the application link or navigate to subscriptions tab
+      $subscriptionsTab = $page->find('css', 'a[href*="subscription"], a:contains("Subscriptions")');
+      if ($subscriptionsTab) {
+        $subscriptionsTab->click();
+        $session->wait(1000);
+      }
+
+      $this->iSubscribeToProductWithPlan($product, $plan);
+      
+      // Small delay between subscriptions
+      $session->wait(1000);
     }
   }
 

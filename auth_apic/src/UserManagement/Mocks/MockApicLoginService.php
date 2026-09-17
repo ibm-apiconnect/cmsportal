@@ -168,7 +168,7 @@ class MockApicLoginService implements ApicLoginServiceInterface {
     }
 
     if ($authCode === 'fail') {
-      \Drupal::messenger()->addError('Error while authenticating user. Please contact your system administrator.');
+      \Drupal::messenger()->addError(t('Error while authenticating user. Please contact your system administrator.'));
     }
     elseif ($authCode === 'noorgenabledonboarding') {
       return 'consumerorg.create';

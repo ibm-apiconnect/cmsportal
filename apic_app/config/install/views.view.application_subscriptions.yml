@@ -10,6 +10,7 @@ dependencies:
   module:
     - apic_app
     - user
+    - better_exposed_filters
 display:
   default:
     display_plugin: default
@@ -112,10 +113,110 @@ display:
           exclude: false
           relationship: none
           group_type: group
+      sorts:
+        id:
+          id: id
+          table: apic_app_application_subs
+          field: id
+          relationship: none
+          group_type: group
+          admin_label: ''
+          plugin_id: standard
+          order: DESC
+          expose:
+            label: 'Id'
+            field_identifier: id
+          exposed: true
+        plan_title_missing:
+          id: plan_title_missing
+          table: apic_app_application_subs
+          field: plan_title_missing
+          relationship: none
+          group_type: group
+          admin_label: 'Plan title missing'
+          plugin_id: standard
+          order: ASC
+          exposed: false
+        plan_title:
+          id: plan_title
+          table: apic_app_application_subs
+          field: plan_title
+          relationship: none
+          group_type: group
+          admin_label: ''
+          plugin_id: standard
+          order: ASC
+          expose:
+            label: 'Plan'
+            field_identifier: plan_title
+          exposed: true
+        product_title_missing:
+          id: product_title_missing
+          table: apic_app_application_subs
+          field: product_title_missing
+          relationship: none
+          group_type: group
+          admin_label: 'Product title missing'
+          plugin_id: standard
+          order: ASC
+          exposed: false
+        product_title:
+          id: product_title
+          table: apic_app_application_subs
+          field: product_title
+          relationship: none
+          group_type: group
+          admin_label: ''
+          plugin_id: standard
+          order: ASC
+          expose:
+            label: 'Product'
+            field_identifier: product_title
+          exposed: true
+      exposed_form:
+        type: bef
+        options:
+          submit_button: Apply
+          reset_button: false
+          reset_button_label: Reset
+          exposed_sorts_label: 'Sort by'
+          expose_sort_order: true
+          sort_asc_label: Asc
+          sort_desc_label: Desc
+          input_required: false
+          text_input_required: 'Select any filter and click on Apply to see results'
+          bef:
+            general:
+              allow_secondary: false
+              secondary_label: 'Advanced options'
+              autosubmit: false
+              autosubmit_hide: false
+            sort:
+              plugin_id: default
+              advanced:
+                collapsible: false
+                collapsible_label: 'Sort options'
+                combine: false
+                combine_rewrite: ''
+                reset: false
+                reset_label: ''
+                is_secondary: false
       empty: {  }
       style:
         type: app_subscriptions_style
         options: {}
+    cache_metadata:
+      max-age: -1
+      contexts:
+        - 'languages:language_content'
+        - 'languages:language_interface'
+        - url
+        - url.query_args
+        - 'url.query_args:sort_by'
+        - 'url.query_args:sort_order'
+        - 'user.node_grants:view'
+        - user.roles
+      tags: {  }
   block_1:
     display_plugin: block
     id: block_1
@@ -126,9 +227,51 @@ display:
       block_category: 'API Connect'
       allow:
         items_per_page: true
+      exposed_form:
+        type: bef
+        options:
+          submit_button: Apply
+          reset_button: false
+          reset_button_label: Reset
+          exposed_sorts_label: 'Sort by'
+          expose_sort_order: true
+          sort_asc_label: Asc
+          sort_desc_label: Desc
+          input_required: false
+          text_input_required: 'Select any filter and click on Apply to see results'
+          bef:
+            general:
+              allow_secondary: false
+              secondary_label: 'Advanced options'
+              autosubmit: false
+              autosubmit_hide: false
+            sort:
+              plugin_id: default
+              advanced:
+                collapsible: false
+                collapsible_label: 'Sort options'
+                combine: false
+                combine_rewrite: ''
+                reset: false
+                reset_label: ''
+                is_secondary: false
+      exposed_block: false
+      use_ajax: true
       style:
         type: app_subscriptions_style
         options: { }
       row:
         type: app_subscription_row
         options: { }
+    cache_metadata:
+      max-age: -1
+      contexts:
+        - 'languages:language_content'
+        - 'languages:language_interface'
+        - url
+        - url.query_args
+        - 'url.query_args:sort_by'
+        - 'url.query_args:sort_order'
+        - 'user.node_grants:view'
+        - user.roles
+      tags: {  }

@@ -836,4 +836,78 @@ class ApiContext extends RawDrupalContext {
     }
   }
 
+  /**
+   * @Given the api :name has collection_id :collectionId and workspace_id :workspaceId
+   * @throws \Exception
+   */
+  public function theApiHasPostmanIds($name, $collectionId, $workspaceId): void {
+    // Clear any stale entity cache before querying
+    \Drupal::entityTypeManager()->getStorage('node')->resetCache();
+    
+    // First try to find by x-ibm-name (more reliable than title)
+    $query = \Drupal::entityQuery('node');
+    $query->condition('type', 'api');
+    $query->condition('api_xibmname.value', $name);
+    $query->sort('nid', 'DESC'); // Get the most recently created API with this name
+    $results = $query->accessCheck()->execute();
+    
+    // Fallback to title if x-ibm-name search fails
+    if (empty($results)) {
+      $query = \Drupal::entityQuery('node');
+      $query->condition('type', 'api');
+      $query->condition('title.value', $name);
+      $query->sort('nid', 'DESC');
+      $results = $query->accessCheck()->execute();
+    }
+
+    if ($results !== NULL && !empty($results)) {
+      $queryNid = array_shift($results);
+      $api = Node::load($queryNid);
+
+      if ($api !== NULL) {
+        print("Found API node {$api->id()} with title '{$api->getTitle()}' for name '$name'\n");
+        // Get the current API swagger document
+        $swaggerField = $api->get('api_swagger')->value;
+        if (!empty($swaggerField)) {
+          $swagger = SerializationUtility::decodeData($swaggerField, TRUE, FALSE);
+          
+          // Add the postman fields to the info section of the swagger document
+          if (!isset($swagger['info'])) {
+            $swagger['info'] = [];
+          }
+          $swagger['info']['x-postman-collection-id'] = $collectionId;
+          $swagger['info']['x-postman-workspace-id'] = $workspaceId;
+          
+          // Save the updated document back to the node
+          $api->set('api_swagger', SerializationUtility::encodeData($swagger));
+          $api->save();
+          
+          // Clear all caches to ensure the updated node is loaded
+          \Drupal::entityTypeManager()->getStorage('node')->resetCache([$api->id()]);
+          \Drupal::service('cache.render')->invalidateAll();
+          \Drupal::service('cache.page')->invalidateAll();
+          
+          // Force reload the node to verify the update persisted
+          $verifyApi = Node::load($queryNid);
+          $verifySwagger = SerializationUtility::decodeData($verifyApi->get('api_swagger')->value, TRUE, FALSE);
+          if (!isset($verifySwagger['info']['x-postman-collection-id']) ||
+              $verifySwagger['info']['x-postman-collection-id'] !== $collectionId) {
+            throw new \Exception("Failed to verify Postman collection ID was saved correctly");
+          }
+          
+          print("Set x-postman-collection-id=$collectionId and x-postman-workspace-id=$workspaceId in info section for API $name\n");
+        }
+        else {
+          throw new \Exception("API $name does not have an api_swagger field");
+        }
+      }
+      else {
+        throw new \Exception("Failed to load API node with name $name");
+      }
+    }
+    else {
+      throw new \Exception("Failed to find an API with the name $name");
+    }
+  }
+
 }

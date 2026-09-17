@@ -117,7 +117,7 @@ class OidcRegistryService implements OidcRegistryServiceInterface {
    *
    * @return array|null
    */
-  public function getOidcMetadata(UserRegistry $registry, JWTToken $invitation_object = NULL): ?array {
+  public function getOidcMetadata(UserRegistry $registry, ?JWTToken $invitation_object = NULL): ?array {
     if (function_exists('ibm_apim_entry_trace')) {
       ibm_apim_entry_trace(__CLASS__ . '::' . __FUNCTION__, NULL);
     }
@@ -149,7 +149,7 @@ class OidcRegistryService implements OidcRegistryServiceInterface {
    * @return string|null
    * @throws \Drupal\encrypt\Exception\EncryptException
    */
-  private function getOidcUrl(UserRegistry $registry, JWTToken $invitation_object = NULL): ?string {
+  private function getOidcUrl(UserRegistry $registry, ?JWTToken $invitation_object = NULL): ?string {
     if (function_exists('ibm_apim_entry_trace')) {
       ibm_apim_entry_trace(__CLASS__ . '::' . __FUNCTION__, NULL);
     }
@@ -182,7 +182,9 @@ class OidcRegistryService implements OidcRegistryServiceInterface {
     $host = $this->apimUtils->getHostUrl();
 
     if (!isset($GLOBALS['__PHPUNIT_ISOLATION_BLACKLIST']) && \Drupal::hasContainer()) {
-      $route = URL::fromRoute('auth_apic.azcode')->toString();
+      // Strip any query parameters (e.g. ?language=fr appended by Drupal's
+      // language URL negotiation) — we build our own query string below.
+      $route = strtok(URL::fromRoute('auth_apic.azcode')->toString(), '?');
     }
     else {
       $route = '/test/env';
@@ -191,7 +193,7 @@ class OidcRegistryService implements OidcRegistryServiceInterface {
     $redirect_uri = $host . $route;
 
     if ($registry->isRedirectEnabled()) {
-      $url = $host . URL::fromRoute('auth_apic.az')->toString();
+      $url = $host . strtok(URL::fromRoute('auth_apic.az')->toString(), '?');
     }
     else {
       $url = $this->apimUtils->getOidcRedirectEndpoint('/consumer-api/oauth2/authorize');

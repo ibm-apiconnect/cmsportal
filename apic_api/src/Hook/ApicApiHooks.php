@@ -75,8 +75,10 @@ class ApicApiHooks {
         // apiref will be a string like: 'maths:1.0.0'
         // product_apis_value will be the same string
         $options = ['target' => 'default'];
-        $query = Database::getConnection($options['target'])
-          ->query("SELECT node__apic_url.entity_id, node__apic_url.apic_url_value FROM node__product_apis INNER JOIN node__apic_url ON node__product_apis.entity_id = node__apic_url.entity_id WHERE product_apis_value LIKE  '%" . $apiRef . "%'", [], $options);
+        $database = Database::getConnection($options['target']);
+        $query = $database
+          ->query("SELECT node__apic_url.entity_id, node__apic_url.apic_url_value FROM node__product_apis INNER JOIN node__apic_url ON node__product_apis.entity_id = node__apic_url.entity_id WHERE product_apis_value LIKE :apiRef",
+            [':apiRef' => '%' . $database->escapeLike($apiRef) . '%'], $options);
         $prods = $query->fetchAll();
 
 
@@ -342,6 +344,48 @@ class ApicApiHooks {
     if (isset($links['node.add.api'])) {
       unset($links['node.add.api']);
     }
+  }
+
+  /**
+   *  Implements hook_theme().
+   *
+   */
+  #[Hook('theme')]
+  public function theme($existing, $type, $theme, $path): array {
+    $definitions = [];
+
+    // Map the API view modes to twig template filenames.
+    $template_map = [
+      'full'     => 'node--api',
+      'teaser'   => 'node--api--teaser',
+      'card'     => 'node--api--card',
+      'embedded' => 'node--api--embedded',
+    ];
+
+    $theme_name  = \Drupal::theme()->getActiveTheme()->getName();
+    $theme_path  = \Drupal::service('extension.list.theme')->getPath($theme_name);
+    $module_path = \Drupal::service('extension.list.module')->getPath('apic_api');
+
+    foreach ($template_map as $view_mode => $template_file) {
+      // Prefer theme overrides; fall back to module templates.
+      if (file_exists($theme_path . '/templates/node/' . $template_file . '.html.twig')) {
+        $template_path = $theme_path . '/templates/node';
+      }
+      elseif (file_exists($theme_path . '/templates/' . $template_file . '.html.twig')) {
+        $template_path = $theme_path . '/templates';
+      }
+      else {
+        $template_path = $module_path . '/templates';
+      }
+
+      $definitions['node__api__' . $view_mode] = [
+        'base hook' => 'node',
+        'template'  => $template_file,   // e.g. node--api--embedded
+        'path'      => $template_path,
+      ];
+    }
+
+    return $definitions;
   }
 
   /**

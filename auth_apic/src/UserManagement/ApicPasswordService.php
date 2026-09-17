@@ -127,7 +127,7 @@ class ApicPasswordService implements ApicPasswordInterface {
   /**
    * @inheritDoc
    */
-  public function lookupUpAccount(string $lookup, string $registry_url = NULL): ?EntityInterface {
+  public function lookupUpAccount(string $lookup, ?string $registry_url = NULL): ?EntityInterface {
     if (\function_exists('ibm_apim_entry_trace')) {
       ibm_apim_entry_trace(__CLASS__ . '::' . __FUNCTION__, $lookup);
     }

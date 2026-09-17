@@ -65,7 +65,7 @@ abstract class Parser {
     $markup = $this->renderAbsy($absy);
 
     $this->cleanup();
-    return Xss::filterAdmin($markup);
+    return Xss::filter($markup);
   }
 
   /**

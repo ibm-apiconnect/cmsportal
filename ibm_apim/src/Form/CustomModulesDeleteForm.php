@@ -99,7 +99,7 @@ class CustomModulesDeleteForm extends FormBase {
 
     $form['preamble'] = [
       '#type' => 'item',
-      '#description' => 'This form allows you to delete any modules you have installed. Any modules shipped with IBM API Developer Portal cannot be deleted. For a module to appear in the list it, and all of its sub-modules, need to be disabled.',
+      '#description' => $this->t('This form allows you to delete any modules you have installed. Any modules shipped with IBM API Developer Portal cannot be deleted. For a module to appear in the list it, and all of its sub-modules, need to be disabled.'),
     ];
     $header = [
       'module' => $this->t('Module'),

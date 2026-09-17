@@ -110,9 +110,20 @@ nav.block-login .menu.nav {
   white-space: nowrap;
 }
 
+.navbar .nav.navbar-nav {
+  display: flex;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.navbar .nav.navbar-nav > li {
+  flex: 0 0 auto;
+}
+
 .navbar .nav.navbar-nav > li > a {
   padding: 0.625rem 0.75rem;
   border: 2px solid transparent;
+  white-space: nowrap;
 }
 
 .navbar .nav.navbar-nav > li > a:hover {
@@ -384,3 +395,4 @@ nav.block-login ul.nav > li.last {
 
   }
 }
+

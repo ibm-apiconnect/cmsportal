@@ -39,6 +39,10 @@ class SocialBlockHooks {
         'variables' => [
           'posts' => NULL,
         ],
+        'page' => [
+          'render element' => 'page',
+          'initial preprocess' => static::class . '::preprocessPage',
+        ],
       ],
     ];
   }
@@ -71,4 +75,15 @@ class SocialBlockHooks {
       return;
     }
   }
+    public static function preprocessPage(array &$variables): void
+  {
+    $current_user = \Drupal::currentUser();
+    $is_admin = $current_user->hasPermission('administer site configuration');
+
+    $variables['#attached']['library'][] = 'socialblock/socialblock';
+    $variables['#attached']['drupalSettings']['csp_error_handler'] = [
+      'isAdmin' => $is_admin,
+    ];
+  }
+
  }

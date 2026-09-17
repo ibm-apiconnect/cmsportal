@@ -350,7 +350,10 @@ class DrushAdminCommands extends DrushCommands {
    * @usage drush deleteall-users [ur_url]
    *   Delete all users
    */
-  public function drush_drushadmin_deleteall_users(string $ur_url = NULL): void {
+  #[CLI\Command(name: 'deleteall-users')]
+  #[CLI\Argument(name: 'ur_url', description: 'The URL of the user registry to delete all users from, leave blank for all')]
+  #[CLI\Usage(name: 'drush deleteall-nodes [ur_url]', description: 'Delete all users')]
+  public function drush_drushadmin_deleteall_users(?string $ur_url = NULL): void {
     $query = \Drupal::entityQuery("user")->accessCheck(FALSE);
     if ($ur_url !== NULL) {
       $query->condition("apic_user_registry_url", $ur_url);
@@ -396,7 +399,10 @@ class DrushAdminCommands extends DrushCommands {
       "crop", "user", "api", "application", "consumerorg", "product", "event_log", "consumerorg_payment_method", "apic_app_application_subs",
       "apic_app_application_creds", "avatars_preview", "comment", "contact_message", "search_api_task", "vote", "vote_result"
     ];
-    $contentTypes = \Drupal::service('entity_type.repository')->getEntityTypeLabels(TRUE)['Content'];
+    $definitions = \Drupal::entityTypeManager()->getDefinitions();
+    $contentTypes = array_filter($definitions, function ($definition) {
+      return $definition->getGroup() === 'content';
+    });
     $result = [];
     foreach ($contentTypes as $contentType => $contentTypeObj) {
       if (in_array($contentType, $blockedEntities)) {
@@ -440,7 +446,11 @@ class DrushAdminCommands extends DrushCommands {
    */
   public function contentList(string $entity_type, array $options = ['bundle' => self::REQ, 'format' => 'table']): ?RowsOfFields {
     $entityTypeManager = \Drupal::service('entity_type.manager');
-    $contentTypes = \Drupal::service('entity_type.repository')->getEntityTypeLabels(TRUE)['Content'];
+    $definitions = \Drupal::entityTypeManager()->getDefinitions();
+    $contentTypes = array_filter($definitions, function ($definition) {
+      return $definition->getGroup() === 'content';
+    });
+    
     $blockedEntities = [
       "crop", "user", "api", "application", "consumerorg", "product", "event_log", "consumerorg_payment_method", "apic_app_application_subs",
       "apic_app_application_creds", "avatars_preview", "comment", "contact_message", "search_api_task", "vote", "vote_result"

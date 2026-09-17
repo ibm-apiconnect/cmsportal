@@ -1,8 +1,6 @@
-diff --git modules/search_api/src/Plugin/views/filter/SearchApiFulltext.php modules/search_api/src/Plugin/views/filter/SearchApiFulltext.php
-index a807a2c9..a1597cf3 100644
 --- modules/search_api/src/Plugin/views/filter/SearchApiFulltext.php
 +++ modules/search_api/src/Plugin/views/filter/SearchApiFulltext.php
-@@ -207,7 +207,7 @@ class SearchApiFulltext extends FilterPluginBase {
+@@ -207,7 +207,7 @@
        '#description' => $this->t('Minimum length of each word in the search keys. Leave empty to allow all words.'),
        '#type' => 'number',
        '#min' => 1,
@@ -11,7 +9,7 @@ index a807a2c9..a1597cf3 100644
      ];
    }
  
-@@ -389,16 +389,17 @@ class SearchApiFulltext extends FilterPluginBase {
+@@ -389,16 +389,17 @@
      }
  
      // Only continue if there is a minimum word length set.
@@ -32,33 +30,33 @@ index a807a2c9..a1597cf3 100644
        $msg = $this->formatPlural($this->options['min_length'], 'You must include at least one keyword to match in the content, and punctuation is ignored.', 'You must include at least one keyword to match in the content. Keywords must be at least @count characters, and punctuation is ignored.');
        $form_state->setErrorByName($identifier, $msg);
      }
-@@ -536,5 +537,29 @@ class SearchApiFulltext extends FilterPluginBase {
+@@ -535,6 +536,29 @@
+     }
  
      return $fields;
-   }
-+    protected function validateOrigin() {
++  }
++
++  protected function validateOrigin() {
 +    $backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
 +    foreach ($backtrace as $caller) {
-+        if (isset($caller['file']) && strpos($caller['file'], "autocomplete") == true) {
-+            return false;
-+        }
++      if (isset($caller['file']) && strpos($caller['file'], "autocomplete") == true) {
++        return false;
++      }
 +    }
 +    return true;
-+  }
-+
+   }
++  
 +  protected function getMinWordLength() {
-+      if (!is_null($this->getQuery()) && !is_null($this->getQuery()->getIndex())) {
-+        $indexId = $this->getQuery()->getIndex()->id();
-+        $index = \Drupal\search_api\Entity\Index::load($indexId);
-+        $server = $index->getServerInstance();
-+        $minL = $server->getBackendConfig()['min_chars'];
-+      }
-+      else {
-+        $minL = $this->options['min_length'];
-+      }
-+
-+      return $minL;
++    if (!is_null($this->getQuery()) && !is_null($this->getQuery()->getIndex())) {
++      $indexId = $this->getQuery()->getIndex()->id();
++      $index = \Drupal\search_api\Entity\Index::load($indexId);
++      $server = $index->getServerInstance();
++      $minL = $server->getBackendConfig()['min_chars'];
++    }
++    else {
++      $minL = $this->options['min_length'];
++    }
++    return $minL;
 +  }
-+
-
+ 
  }

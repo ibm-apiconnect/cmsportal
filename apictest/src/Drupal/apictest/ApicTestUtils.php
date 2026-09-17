@@ -47,7 +47,7 @@ class ApicTestUtils {
       }
     }
     else {
-      $org->setOwnerUrl($apimUtils->removeFullyQualifiedUrl($properties['owner']));
+      $org->setOwnerUrl(\Drupal::service('ibm_apim.apim_utils')->removeFullyQualifiedUrl($properties['owner']));
     }
     $org->setCreatedAt(strtotime("-1 day"));
     $org->setUpdatedAt(time());

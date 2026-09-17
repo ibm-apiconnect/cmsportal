@@ -372,12 +372,9 @@ class UserUtils {
         }
       }
       if (empty($new_org_urls)) {
-        user_cancel([], $account->id(), 'user_cancel_reassign');
-        if (!isset($GLOBALS['__PHPUNIT_ISOLATION_BLACKLIST']) && \Drupal::hasContainer()) {
-          $batch = &batch_get();
-          $batch['progressive'] = FALSE;
-          batch_process();
-        }
+        // Keep account with empty org list instead of deleting
+        $account->set('consumerorg_url', NULL);
+        $account->save();
       } else {
         $account->set('consumerorg_url', $new_org_urls);
         $account->save();

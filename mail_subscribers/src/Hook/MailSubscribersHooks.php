@@ -131,12 +131,41 @@ class MailSubscribersHooks {
    * @return array
    */
   #[Hook('theme')]
-  public function theme(): array {
+public function theme(array $existing, string $type, string $theme, string $path): array {
     $themeTemplates = [];
-    $themeTemplates['mail_subscribers_ctools_wizard_trail'] = [
-      'template' => 'mail-subscribers-ctools-wizard-trail',
-      'base hook' => 'ctools_wizard_trail',
+
+    // Module path
+    $modulePath = \Drupal::service('extension.list.module')->getPath('mail_subscribers');
+
+    // Wizard forms
+    $forms = [
+        'mail_subscribers_wizard_choose_api',
+        'mail_subscribers_wizard_choose_consumerorg',
+        'mail_subscribers_wizard_choose_plan',
+        'mail_subscribers_wizard_choose_product',
+        'mail_subscribers_wizard_choose_role',
+        'mail_subscribers_wizard_confirm_send',
+        'mail_subscribers_wizard_enter_content',
+        'mail_subscribers_wizard_result',
     ];
+
+    foreach ($forms as $form_id) {
+        // The **theme hook name** must match the form ID exactly
+        $themeTemplates[$form_id] = [
+            'render element' => 'form',
+            'template' => 'form-' . str_replace('_', '-', $form_id),
+            'path' => $modulePath . '/templates',
+        ];
+    }
+
+    // Wizard trail override
+    $themeTemplates['mail_subscribers_ctools_wizard_trail'] = [
+        'template' => 'mail-subscribers-ctools-wizard-trail',
+        'base hook' => 'ctools_wizard_trail',
+        'path' => $modulePath . '/templates',
+    ];
+
     return $themeTemplates;
-  }
+}
+
  }

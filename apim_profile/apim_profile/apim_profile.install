@@ -42,10 +42,6 @@ use Drupal\ultimate_cron\Entity\CronJob;
 function apim_profile_install() {
   $path = __DIR__;
 
-  // First, do everything in standard profile.
-  include_once DRUPAL_ROOT . '/core/profiles/standard/standard.install';
-  standard_install();
-
   $core_dependencies = [
     'node',
     'history',
@@ -196,7 +192,6 @@ function apim_profile_install() {
     'jquery_ui_resizable',
     'layout_builder',
     'navigation',
-    'navigation_top_bar',
     'jquery_ui',
     'jquery_ui_draggable',
     'jquery_ui_accordion',
@@ -458,8 +453,8 @@ function apim_profile_default_apic_config() {
     ->set('certificate_strip_newlines', TRUE)
     ->set('certificate_strip_prefix', TRUE)
     ->set('payment_method_encryption_profile', 'socialblock')
-    ->set('api_max_depth', 9)
-    ->set('example_array_items', 3)
+    ->set('api_max_depth', 5)
+    ->set('example_array_items', 1)
     ->set('audit_endpoint', '')
     ->set('audit_blocking',FALSE)
     ->save();
@@ -483,6 +478,7 @@ function apim_profile_default_apic_config() {
 
   \Drupal::service('config.factory')
     ->getEditable('user.settings')
+    // ->set('register', 'visitors_admin_approval')
     ->set('notify.status_activated', FALSE)
     ->set('notify.register_admin_created', FALSE)
     ->set('notify.register_no_approval_required', FALSE)
@@ -3433,7 +3429,7 @@ function apim_profile_update_10041() {
 function apim_profile_update_10042() {
   user_role_revoke_permissions('administrator', ['access tour']);
   module_uninstall(['tour', 'admin_toolbar', 'admin_toolbar_tools']);
-  module_install(['layout_builder', 'navigation', 'navigation_top_bar', 'jquery_ui_resizable']);
+  module_install(['layout_builder', 'navigation', 'jquery_ui_resizable']);
   user_role_grant_permissions('administrator', ['access navigation', 'configure navigation layout']);
 }
 

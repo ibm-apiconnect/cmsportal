@@ -62,16 +62,28 @@ class ApicLetterAvatar extends AvatarGeneratorBase {
 
       $colorToUse = rand(0, count($arrColors) - 1);
 
-      $avatar = new InitialAvatar();
-      $image = $avatar
-      ->name($account->getAccountName())
-      ->length(1)
-      ->size(125)
-      ->fontSize(0.8)
-      ->background($arrColors[$colorToUse]['b'])
-      ->color($arrColors[$colorToUse]['t'])
-      ->generate();
-      $image->save($file_system->realpath($path));
+      // Suppress E_DEPRECATED during avatar generation: intervention/image v2
+      // triggers "Implicitly marking parameter as nullable is deprecated" on
+      // PHP 8.4. Drupal's error handler converts E_DEPRECATED into a page-level
+      // error message which causes behat "there are no errors" assertions to
+      // fail. This is a known upstream issue; suppress here until the library
+      // is updated or replaced.
+      $prevErrorLevel = error_reporting(error_reporting() & ~E_DEPRECATED);
+      try {
+        $avatar = new InitialAvatar();
+        $image = $avatar
+        ->name($account->getAccountName())
+        ->length(1)
+        ->size(125)
+        ->fontSize(0.8)
+        ->background($arrColors[$colorToUse]['b'])
+        ->color($arrColors[$colorToUse]['t'])
+        ->generate();
+        $image->save($file_system->realpath($path));
+      }
+      finally {
+        error_reporting($prevErrorLevel);
+      }
 
       // File cannot chain methods.
       $file = File::create();

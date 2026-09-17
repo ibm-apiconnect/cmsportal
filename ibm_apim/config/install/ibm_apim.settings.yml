@@ -21,6 +21,8 @@ allow_consumerorg_delete: true
 allow_consumerorg_change_owner: true
 enable_oidc_register_form: true
 enable_oidc_login_form: false
+invitation_resend_limit: 10
+invitation_resend_window: 3600
 allow_user_delete: true
 allow_new_credentials: true
 allow_clientid_reset: true
@@ -55,8 +57,8 @@ proxy_auth:
 proxy_for_api: 'CONSUMER,PLATFORM,ANALYTICS'
 payment_method_encryption_profile: 'socialblock'
 billing_providers:
-api_max_depth: 9
-example_array_items: 3
+api_max_depth: 5
+example_array_items: 1
 product_recommendations:
   enabled: false
   count: 3

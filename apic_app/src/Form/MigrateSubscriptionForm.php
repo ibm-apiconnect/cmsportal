@@ -124,13 +124,21 @@ class MigrateSubscriptionForm extends ConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state, NodeInterface $appId = NULL, $subId = NULL, $planRef = NULL): array {
-    if ($appId !== NULL) {
-      $this->node = $appId;
+  public function buildForm(array $form, FormStateInterface $form_state): array {
+    $route_match = \Drupal::routeMatch();
+    if ($route_match->getParameter('appId') !== NULL) {
+      // The AppIdParamConverter has already converted the appId to a node
+      $this->node = $route_match->getParameter('appId');
     }
-    if ($subId !== NULL) {
-      $this->sub = $subId;
+    if ($route_match->getParameter('subId') !== NULL) {
+      // The AppIdParamConverter has already converted the appId to a node
+      $this->sub = $route_match->getParameter('subId');
     }
+    if ($route_match->getParameter('planRef') !== NULL) {
+      // The AppIdParamConverter has already converted the appId to a node
+      $planRef = $route_match->getParameter('planRef');
+    }
+   
     $this->planRef = Html::escape($planRef);
     $form = parent::buildForm($form, $form_state);
     $form['#attached']['library'][] = 'apic_app/basic';

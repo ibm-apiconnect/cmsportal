@@ -477,7 +477,7 @@ class APIMServer implements ManagementServerInterface {
    * @return \Drupal\ibm_apim\Rest\Interfaces\RestResponseInterface|\Drupal\ibm_apim\Rest\RestResponse|null
    * @throws \Drupal\ibm_apim\Rest\Exception\RestResponseParseException|\Exception
    */
-  public function acceptInvite(JWTToken $token, ApicUser $acceptingUser, string $orgTitle = NULL) {
+  public function acceptInvite(JWTToken $token, ApicUser $acceptingUser, ?string $orgTitle = NULL) {
     ibm_apim_entry_trace(__CLASS__ . '::' . __FUNCTION__, NULL);
 
     $headers = [
@@ -720,7 +720,7 @@ class APIMServer implements ManagementServerInterface {
    * @return \Drupal\ibm_apim\Rest\Interfaces\RestResponseInterface|\Drupal\ibm_apim\Rest\RestResponse|null
    * @throws \Exception
    */
-  public function postMemberInvitation(ConsumerOrg $org, string $email_address, string $role = NULL) {
+  public function postMemberInvitation(ConsumerOrg $org, string $email_address, ?string $role = NULL) {
     ibm_apim_entry_trace(__CLASS__ . '::' . __FUNCTION__, NULL);
     $data = [
       'email' => $email_address,

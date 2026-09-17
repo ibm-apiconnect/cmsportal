@@ -456,6 +456,34 @@ class IBMPortalContext extends DrupalContext implements SnippetAcceptingContext 
   }
 
   /**
+   * @Given I set current consumerorg to :arg1
+   */
+  public function setCurrentConsumerorg($orgIdOrUrl): void {
+    $userUtils = \Drupal::service('ibm_apim.user_utils');
+    $orgUrl = $orgIdOrUrl;
+    if (strpos($orgUrl, '/consumer-orgs/') !== 0) {
+      $orgUrl = '/consumer-orgs/1234/5678/' . $orgIdOrUrl;
+    }
+    $userUtils->setCurrentConsumerorg($orgUrl);
+    $userUtils->setOrgSessionData();
+  }
+
+  /**
+   * @Given I am on the subscriptions page for application :appId
+   */
+  public function iAmOnTheSubscriptionsPageForApplication($appId): void {
+    $query = \Drupal::entityQuery('node');
+    $query->condition('type', 'application');
+    $query->condition('application_id.value', $appId);
+    $nids = $query->accessCheck(FALSE)->execute();
+    if (empty($nids)) {
+      throw new \Exception("Failed to find application node for id $appId");
+    }
+    $nid = array_shift($nids);
+    $this->getMink()->getSession()->visit($this->locatePath('/node/' . $nid . '/subscriptions'));
+  }
+
+  /**
    * @Then Enable ACLDebug
    */
   public function enableACLDebug(): void {
@@ -1322,8 +1350,7 @@ class IBMPortalContext extends DrupalContext implements SnippetAcceptingContext 
         }
       }
 
-      // Login.
-      $this->login($user);
+      $this->loginViaRegistry($user, $user->registry_url);
     }
   }
 
@@ -1443,7 +1470,75 @@ class IBMPortalContext extends DrupalContext implements SnippetAcceptingContext 
     if (!$foundMatch) {
       throw new \Exception("No link found with href including: $url_segment");
     }
+  }
 
+  /**
+   * Check if a link on the page matches a regex pattern.
+   *
+   * @Then I should see a link with href matching :pattern
+   *
+   * @param string $pattern
+   *
+   * @throws \Exception
+   */
+  public function iShouldSeeALinkWithHrefMatching($pattern): void {
+    $page = $this->getSession()->getPage();
+    $links = $page->findAll('xpath', '//a/@href');
+
+    $foundMatch = FALSE;
+
+    foreach ($links as $link) {
+      // If element or tag is empty...
+      if (empty($link->getParent())) {
+        continue;
+      }
+
+      $href = $link->getParent()->getAttribute('href');
+
+      if (empty($href)) {
+        continue;
+      }
+
+      // Check if href matches the regex pattern
+      if (preg_match('#' . $pattern . '#', $href)) {
+        $foundMatch = TRUE;
+        break;
+      }
+    }
+
+    if (!$foundMatch) {
+      throw new \Exception("No link found with href matching pattern: $pattern");
+    }
+  }
+
+  /**
+   * Check that no link on the page has an href matching a regex pattern.
+   *
+   * @Then I should not see a link with href matching :pattern
+   *
+   * @param string $pattern
+   *
+   * @throws \Exception
+   */
+  public function iShouldNotSeeALinkWithHrefMatching($pattern): void {
+    $page = $this->getSession()->getPage();
+    $links = $page->findAll('xpath', '//a/@href');
+
+    foreach ($links as $link) {
+      if (empty($link->getParent())) {
+        continue;
+      }
+
+      $href = $link->getParent()->getAttribute('href');
+
+      if (empty($href)) {
+        continue;
+      }
+
+      if (preg_match('#' . $pattern . '#', $href)) {
+        throw new \Exception("Link found with href matching pattern '$pattern': $href");
+      }
+    }
   }
 
   /**
@@ -1611,8 +1706,8 @@ class IBMPortalContext extends DrupalContext implements SnippetAcceptingContext 
       ->set('certificate_strip_newlines', TRUE)
       ->set('certificate_strip_prefix', TRUE)
       ->set('payment_method_encryption_profile', 'socialblock')
-      ->set('api_max_depth', 9)
-      ->set('example_array_items', 3)
+      ->set('api_max_depth', 5)
+      ->set('example_array_items', 1)
       ->save();
     \Drupal::service('config.factory')->getEditable('ibm_apim.devel_settings')
       ->set('entry_exit_trace', FALSE)
@@ -1957,4 +2052,338 @@ class IBMPortalContext extends DrupalContext implements SnippetAcceptingContext 
         );
     }
   }
+
+  /**
+   * Checks whether the custom hook was invoked for a given key.
+   *
+   * This method is used for validation at the end of the scenario.
+   *
+   * @Then the custom hook with key :hook_key should have been invoked
+   */
+  public function assertCustomHookInvokedWithKey($hook_key) {
+    $key = 'custom_hook_test.' . $hook_key;
+    // Retrieve all recorded hook invocations from Drupal state
+    $invocation = \Drupal::state()->get($key, [], FALSE);
+
+    if (!$invocation) {
+      throw new \Exception(sprintf('Custom hook was NOT invoked for key "%s".', $hook_key));
+    }
+
+    // Optional: log for debugging
+    \Drupal::logger('behat')->notice('Custom hook invoked for key: @key', [
+      '@key' => $hook_key,
+    ]);
+  }
+
+  /**
+   * Clear all custom hook test state values.
+   *
+   * This method clears all Drupal state values that start with 'custom_hook_test.'
+   * to prevent state leakage between test scenarios.
+   */
+  private function clearCustomHookTestState(): void {
+    $state = \Drupal::state();
+    
+    // List of all custom hook keys that need to be cleared
+    $hookKeys = [
+      'custom_hook_test.apic_app_pre_create',
+      'custom_hook_test.apic_app_create',
+      'custom_hook_test.apic_app_pre_update',
+      'custom_hook_test.apic_app_update',
+      'custom_hook_test.apic_app_creds_pre_create',
+      'custom_hook_test.apic_app_creds_create',
+      'custom_hook_test.apic_app_creds_pre_update',
+      'custom_hook_test.apic_app_creds_update',
+      'custom_hook_test.apic_app_pre_clientid_reset',
+      'custom_hook_test.apic_app_clientid_reset',
+      'custom_hook_test.apic_app_pre_clientsecret_reset',
+      'custom_hook_test.apic_app_clientsecret_reset',
+      'custom_hook_test.consumerorg_pre_create',
+      'custom_hook_test.consumerorg_create',
+      'custom_hook_test.consumerorg_pre_update',
+      'custom_hook_test.consumerorg_update',
+      'custom_hook_test.apic_app_pre_subscribe',
+      'custom_hook_test.apic_app_subscribe',
+      'custom_hook_test.apic_app_pre_unsubscribe',
+      'custom_hook_test.apic_app_unsubscribe',
+      'custom_hook_test.apic_app_pre_migrate',
+      'custom_hook_test.apic_app_migrate',
+    ];
+    
+    // Also clear exception trigger states
+    $exceptionTriggerKeys = [
+      'apic_app_pre_create_throw_exception',
+      'apic_app_pre_update_throw_exception',
+      'apic_app_creds_pre_create_throw_exception',
+      'apic_app_creds_pre_update_throw_exception',
+      'apic_app_pre_clientid_reset_throw_exception',
+      'apic_app_pre_clientsecret_reset_throw_exception',
+      'consumerorg_pre_create_throw_exception',
+      'consumerorg_pre_update_throw_exception',
+      'apic_app_pre_subscribe_throw_exception',
+      'apic_app_pre_unsubscribe_throw_exception',
+      'apic_app_pre_migrate_throw_exception',
+    ];
+    
+    foreach ($hookKeys as $key) {
+      $state->delete($key);
+    }
+    
+    foreach ($exceptionTriggerKeys as $key) {
+      $state->delete($key);
+    }
+  }
+
+  /**
+  * @When I click the element with title :title
+  */
+  public function iClickElementWithTitle($title)
+  {
+      $session = $this->getSession();
+      $page = $session->getPage();
+
+      // Find the <a> inside an element with this title
+      $element = $page->find('xpath', "//li[@title='$title']//a | //a[@title='$title']");
+
+      if (null === $element) {
+          throw new \Exception("No clickable element found with title '$title'");
+      }
+
+      $element->click();
+  }
+
+  /**
+ * Click a button (or link) by visible text or title attribute.
+ *
+ * @When I click the button :label
+ */
+  public function iClickTheButton($label)
+  {
+    $page = $this->getSession()->getPage();
+
+    // Try to find a button by text, value, id, or name
+    $button = $page->findButton($label);
+
+    // Try to find a link by text
+    if (!$button) {
+        $button = $page->findLink($label);
+    }
+
+    // Try to find by title attribute (buttons, inputs, links, divs)
+    if (!$button) {
+        $button = $page->find('xpath', "//*[@title='$label']");
+    }
+    
+    if (!$button) {
+      $button = $page->find('xpath', "//*[@value='$label']");
+    }
+
+    if (null === $button) {
+        throw new \Exception("No button or link found with label or title '$label'");
+    }
+
+
+    $button->click();
+  }
+
+  /**
+  * @Given the Drupal state :key is set to :value
+  */
+  public function setDrupalState($key, $value) {
+    \Drupal::state()->set($key, $value);
+
+    // Optionally log or assert.
+    if (\Drupal::state()->get($key) != $value) {
+      throw new \Exception("Failed to set Drupal state '$key' to '$value'.");
+    }
+  }
+
+  /**
+  * @Then I should see the unexpected error message
+  */
+  public function iShouldSeeTheUnexpectedErrorMessage() {
+    $page = $this->getSession()->getPage();
+    $text = $page->getText();
+
+    $expected = 'The website encountered an unexpected error. Try again later.';
+
+    if (strpos($text, $expected) === FALSE) {
+      throw new \Exception("Expected to see the error message '$expected', but it was not found.");
+    }
+  }
+
+  /**
+  * @Then the :class class should exist
+  */
+  public function theClassShouldExist(string $class)
+  {
+      $page = $this->getSession()->getPage();
+      
+      // Find the element by CSS class
+      $element = $page->find('css', '.' . $class);
+      
+      if (!$element) {
+          throw new \Exception("No element with class '{$class}' found on the page.");
+      }
+  }
+
+  /**
+   * @Then the element with class :class should be clickable
+   */
+  public function theElementShouldBeClickable(string $class)
+  {
+      if (!$this->isElementClickable($class)) {
+          throw new \Exception("Element with class '{$class}' is not clickable.");
+      }
+  }
+
+  /**
+   * @Then the element with class :class should not be clickable
+   */
+  public function theElementShouldNotBeClickable(string $class)
+  {
+      if ($this->isElementClickable($class)) {
+          throw new \Exception("Element with class '{$class}' is clickable, but it should not be.");
+      }
+  }
+
+  /**
+   * @Then I should see the subscriptions in alphabetical order by plan name:
+   */
+  public function iShouldSeeSubscriptionsInAlphabeticalOrderByPlanName(TableNode $table)
+  {
+      $expected = [];
+      foreach ($table->getRows() as $row) {
+          $expected[] = trim((string) ($row[0] ?? ''));
+      }
+
+      $page = $this->getSession()->getPage();
+      $planCells = $page->findAll('css', '.apicAppSubscriptions table tbody td.plan');
+      if (empty($planCells)) {
+          throw new \Exception('No subscription plan cells found on the page.');
+      }
+
+      $actual = [];
+      foreach ($planCells as $cell) {
+          $actual[] = trim($cell->getText());
+      }
+
+      if ($actual !== $expected) {
+          throw new \Exception('Expected plan order: ' . implode(', ', $expected) . '. Actual: ' . implode(', ', $actual) . '.');
+      }
+  }
+
+  /**
+   * Checks if an element with a specific CSS class is clickable.
+   *
+   * @param string $class The CSS class to look for.
+   * @return bool True if clickable, false otherwise.
+   */
+  public function isElementClickable(string $class): bool
+  {
+      $page = $this->getSession()->getPage();
+
+      // Find the element by CSS class
+      $element = $page->find('css', '.' . $class);
+
+      if (!$element) {
+          throw new \Exception("No element with class '{$class}' found on the page.");
+      }
+
+
+      // Check if element is disabled (for buttons, inputs)
+      if ($element->hasAttribute('disabled')) {
+          return false;
+      }
+
+      // Check for aria-disabled attribute
+      $ariaDisabled = $element->getAttribute('aria-disabled');
+      if ($ariaDisabled !== null && ($ariaDisabled === 'true' || $ariaDisabled === true)) {
+          return false;
+      }
+
+      // Check pointer-events CSS (for divs or spans)
+      $style = $element->getAttribute('style');
+      if ($style && strpos($style, 'pointer-events: none') !== false) {
+          return false;
+      }
+
+      // If we reach here, element appears to be clickable
+      return true;
+  }
+  /**
+   * Wait for a specified number of seconds.
+   *
+   * @When I wait :seconds seconds
+   */
+  public function iWaitSeconds($seconds): void {
+    sleep((int) $seconds);
+  }
+
+  /**
+   * Check if the current URL contains a specific string.
+   *
+   * @Then the current URL should contain :text
+   */
+  public function theCurrentUrlShouldContain($text): void {
+    $currentUrl = $this->getSession()->getCurrentUrl();
+    if (strpos($currentUrl, $text) === FALSE) {
+      throw new \Exception("Current URL '$currentUrl' does not contain '$text'");
+    }
+  }
+
+  /**
+   * Enable language URL query parameter negotiation.
+   * This simulates the configuration that triggers the OIDC authorize URL
+   * malformation bug where Drupal appends ?language=fr to route URLs before
+   * the OAuth2 query string is constructed.
+   *
+   * Note: In Drupal 11.4 the standalone "language-url-parameter" plugin was
+   * removed. Query parameter detection is now controlled by setting the
+   * language.negotiation url.source to "query_parameter" within the existing
+   * "language-url" plugin.
+   *
+   * @Given language URL query parameter negotiation is enabled
+   */
+  public function languageUrlQueryParameterNegotiationIsEnabled(): void {
+    // Enable language-url plugin in interface negotiation.
+    // Also remove the old "language-url-parameter" plugin ID that was removed
+    // in Drupal 11.4 — any residual entry causes a fatal plugin-not-found error
+    // on every request, which exhausts BrowserKit history memory and OOMs.
+    $typesConfig = \Drupal::service('config.factory')->getEditable('language.types');
+    $negotiation = $typesConfig->get('negotiation.language_interface.enabled') ?? [];
+    unset($negotiation['language-url-parameter']);
+    $negotiation['language-url'] = -9;
+    $typesConfig->set('negotiation.language_interface.enabled', $negotiation)->save();
+
+    // Switch url negotiation source to query_parameter so that ?language=fr
+    // is recognised (matching the old language-url-parameter behaviour).
+    $negConfig = \Drupal::service('config.factory')->getEditable('language.negotiation');
+    $negConfig->set('url.source', 'query_parameter')->save();
+
+    drupal_flush_all_caches();
+    print "Language URL query parameter negotiation enabled\n";
+  }
+
+  /**
+   * Disable language URL query parameter negotiation.
+   *
+   * @Given language URL query parameter negotiation is disabled
+   */
+  public function languageUrlQueryParameterNegotiationIsDisabled(): void {
+    // Remove language-url from interface negotiation.
+    // Also remove any residual "language-url-parameter" entry from Drupal < 11.4.
+    $typesConfig = \Drupal::service('config.factory')->getEditable('language.types');
+    $negotiation = $typesConfig->get('negotiation.language_interface.enabled') ?? [];
+    unset($negotiation['language-url'], $negotiation['language-url-parameter']);
+    $typesConfig->set('negotiation.language_interface.enabled', $negotiation)->save();
+
+    // Restore url negotiation source back to path_prefix.
+    $negConfig = \Drupal::service('config.factory')->getEditable('language.negotiation');
+    $negConfig->set('url.source', 'path_prefix')->save();
+
+    drupal_flush_all_caches();
+    print "Language URL query parameter negotiation disabled\n";
+  }
+
 }

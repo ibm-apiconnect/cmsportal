@@ -108,7 +108,7 @@ class ProductContext extends RawDrupalContext {
     $object['catalog_product']['info']['categories'] = [$categories];
     $object['state'] = 'published';
     $object['id'] = $id;
-    $object['url'] = '/catalogs/1234/5678/products/' . $id;
+    $object['url'] = '/catalogs/1234/5678/products/' . $object['id'];
     $object['catalog_product']['visibility']['view']['enabled'] = TRUE;
     $object['catalog_product']['visibility']['subscribe']['enabled'] = TRUE;
     $object['catalog_product']['visibility']['subscribe']['type'] = 'authenticated';
@@ -212,7 +212,7 @@ class ProductContext extends RawDrupalContext {
     $object['catalog_product']['info']['categories'] = [$categories];
     $object['state'] = 'published';
     $object['id'] = '12345678';
-    $object['url'] = 'https://localhost.com';
+    $object['url'] = '/catalogs/1234/5678/products/' . $object['id'];
     $object['catalog_product']['visibility']['view']['enabled'] = TRUE;
     $object['catalog_product']['visibility']['subscribe']['enabled'] = TRUE;
     $object['catalog_product']['visibility']['subscribe']['type'] = 'authenticated';
@@ -518,7 +518,7 @@ class ProductContext extends RawDrupalContext {
     }
   }
 
-    /**
+  /**
    * @Given I publish a product with the name :arg1, id :arg2, apis :arg3 and a paid plan
    * @throws \Drupal\Core\Entity\EntityStorageException
    * @throws \Exception
@@ -569,6 +569,62 @@ class ProductContext extends RawDrupalContext {
     ];
     $object['catalog_product']['apis'] = [$incApi => ['name' => $incApi]];
 
+    $object['catalog_product']['visibility']['view']['enabled'] = true;
+    $object['catalog_product']['visibility']['subscribe']['enabled'] = TRUE;
+    $object['catalog_product']['visibility']['subscribe']['type'] = 'authenticated';
+    $object['catalog_product']['visibility']['view']['type'] = 'public';
+
+    $product = new Product();
+    $nid = $product->create($object);
+    // Make sure that the call returns a number
+    if ((int) $nid >= 0) {
+      print('Saved product ' . $name . ' as nid ' . $nid . PHP_EOL);
+    }
+    else {
+      throw new \Exception("Failed to create product with the name $name");
+    }
+  }
+
+  /**
+   * @Given I publish a product with the name :arg1, id :arg2, apis :arg3 and plan name :arg4
+   * @throws \Drupal\Core\Entity\EntityStorageException
+   * @throws \Exception
+   */
+  public function iPublishAProductWithNameIdApiAndPlanName($name, $id, $api, $plan_name): void {
+    $random = new Random();
+    if ($name === NULL || empty($name)) {
+      $name = $random->name(8);
+    }
+    $incApi = $api . ':1.0.0';
+    $object = [];
+    $object['created_at'] = '2021-02-26T12:18:58.995Z';
+    $object['updated_at'] = '2021-02-26T12:18:58.995Z';
+    $object['catalog_product'] = [];
+    $object['catalog_product']['info'] = [];
+    $object['catalog_product']['info']['name'] = $name;
+    $object['catalog_product']['info']['title'] = $name;
+    $object['catalog_product']['info']['version'] = '1.0.0';
+    $object['catalog_product']['info']['x-pathalias'] = $name;
+    $object['state'] = 'published';
+    $object['id'] = $id;
+    $object['url'] = 'https://localhost.com';
+    $object['product_plans'] = [["apis" => []]];
+    $object['catalog_product']['plans'] = [
+      $plan_name => [
+        "rate-limits" => [
+          "default" => [
+            "value" => "100/1hour",
+          ],
+        ],
+        "title" => $plan_name,
+        "description" => $plan_name,
+        "approval" => null,
+        "apis" => [
+          $incApi => [],
+        ],
+      ],
+    ];
+    $object['catalog_product']['apis'] = [$incApi => ['name' => $incApi]];
     $object['catalog_product']['visibility']['view']['enabled'] = true;
     $object['catalog_product']['visibility']['subscribe']['enabled'] = TRUE;
     $object['catalog_product']['visibility']['subscribe']['type'] = 'authenticated';
@@ -912,5 +968,93 @@ class ProductContext extends RawDrupalContext {
     }
     
     print("Replaced product $oldProductId with $newProductId using plan mapping\n");
+  }
+  
+  /**
+   * @Given I publish a product with the name :arg1, id :arg2, multiple apis :arg3 and subscribility :arg4 :arg5 :arg6
+   * @throws \Drupal\Core\Entity\EntityStorageException
+   * @throws \Exception
+   */
+  public function iPublishAProductWithNameIdMultipleAPIsSubscribability($name, $id, $apis, $sub, $data, $enabled): void {
+    $random = new Random();
+    if ($name === NULL || empty($name)) {
+      $name = $random->name(8);
+    }
+    
+    // Parse comma-separated API list
+    $apiList = array_map('trim', explode(',', $apis));
+    
+    $object = [];
+    $object['created_at'] = '2021-02-26T12:18:58.995Z';
+    $object['updated_at'] = '2021-02-26T12:18:58.995Z';
+    $object['catalog_product'] = [];
+    $object['catalog_product']['info'] = [];
+    $object['catalog_product']['info']['name'] = $name;
+    $object['catalog_product']['info']['title'] = $name;
+    $object['catalog_product']['info']['x-pathalias'] = $name;
+    $object['catalog_product']['info']['version'] = '1.0.0';
+    $object['state'] = 'published';
+    $object['id'] = $id;
+    $object['url'] = 'https://localhost.com';
+    $object['product_plans'] = [["apis" => []]];
+    
+    // Build APIs array for the plan
+    // Each API needs :1.0.0 suffix for the plan/catalog structure
+    $planApis = [];
+    $catalogApis = [];
+    foreach ($apiList as $api) {
+      $apiWithVersion = $api . ':1.0.0';
+      $planApis[$apiWithVersion] = [];
+      $catalogApis[$apiWithVersion] = ['name' => $apiWithVersion];
+    }
+    
+    $object['catalog_product']['plans'] = [
+      "default-plan" => [
+        "rate-limits" => [
+          "default" => [
+            "value" => "100/1hour"
+          ]
+        ],
+        "title" => "Default Plan",
+        "description" => "Default Plan",
+        "approval" => null,
+        "apis" => $planApis
+      ]
+    ];
+    
+    $object['catalog_product']['apis'] = $catalogApis;
+    $object['catalog_product']['visibility']['view']['enabled'] = true;
+    $object['catalog_product']['visibility']['view']['type'] = 'public';
+    
+    if ($enabled === "false" || $enabled === "FALSE") {
+      $object['catalog_product']['visibility']['subscribe']['enabled'] = 0;
+    } else {
+      $object['catalog_product']['visibility']['subscribe']['enabled'] = true;
+    }
+    
+    switch ($sub) {
+      case 'auth':
+        $object['catalog_product']['visibility']['subscribe']['type'] = 'authenticated';
+        break;
+      case 'org_urls':
+        $object['catalog_product']['visibility']['subscribe']['type'] = 'custom';
+        $object['catalog_product']['visibility']['subscribe']['org_urls'] = [$data];
+        break;
+      case 'tags':
+        $object['catalog_product']['visibility']['subscribe']['type'] = 'custom';
+        $object['catalog_product']['visibility']['subscribe']['group_urls'] = [$data];
+        break;
+      default:
+    }
+
+    $product = new Product();
+    $nid = $product->create($object);
+    
+    if ((int) $nid >= 0) {
+      print('Saved product ' . $name . ' with ' . count($apiList) . ' APIs as nid ' . $nid . PHP_EOL);
+    }
+    else {
+      throw new \Exception("Failed to create product with the name $name");
+    }
   }
 }
