@@ -16,8 +16,9 @@
     </div>
   {% endif %}
   <div class="apicPlans">
+    <ul class="apicPlansList" role="list">
     {% for planid, plan in planList %}
-      <div class="planCard">
+      <li class="planCard">
 
         {% if plan.requiresApproval %}
           {% set requireApproval = true %}
@@ -103,9 +104,7 @@
             <p class="body-short-01">{% trans %}There are no APIs in this plan{% endtrans %}</p>
           {% endif %}
           {% if numApis > 4 %}
-            {% trans with {'@number': numApis} %}
-              <p class="body-short-01">@number APIs including</p>
-            {% endtrans %}
+            <p class="body-short-01">{{ numApis }} {% trans %}APIs including{% endtrans %}</p>
           {% endif %}
 
           <ul class="planApiList">
@@ -127,21 +126,26 @@
 
         {% if numApis != 0 %}
           <div class="planViewDetails">
-            <a href="#" data-toggle="modal" data-target="#planModal{{ loop.index }}" class="planDetailsButton">{% trans %}View details{% endtrans %}</a>
+            <a href="#" data-toggle="modal" data-target="#planModal{{ loop.index }}" class="planDetailsButton" aria-label="{{ 'View details for'|t }} {{ plan.data.title }}">{% trans %}View details{% endtrans %}</a>
           </div>
         {% endif %}
-      </div>
+      </li>
+    {% endfor %}
+    </ul>
 
+    {% for planid, plan in planList %}
       <div id="planModal{{ loop.index }}" class="modal fade">
         <div class="modal-dialog modal-lg">
           <div class="modal-content">
             <div class="planDetail--header">
-              <a href="javascript:" data-toggle="modal" data-target="#planModal{{ loop.index }}" class="planDetail--modalClose" 
-              title={% trans %}Close{% endtrans %}>{{ close_svg|raw }}</a>
+              <button type="button" data-toggle="modal" data-target="#planModal{{ loop.index }}" class="planDetail--modalClose"
+              aria-label="{% trans %}Close{% endtrans %}">{{ close_svg|raw }}</button>
               <h2 class="productive-heading-04">{{ plan.data.title }}</h2>
+              {% if plan.data.description is defined and plan.data.description is not empty %}
               <div class="body-short-01">
                 {{ plan.data.description|markdown }}
               </div>
+              {% endif %}
               {% if plan.custom is defined and plan.custom is not empty %}
                 <div class="planCustomAttributes">
                   {% for keyName, keyValue in plan.custom %}
@@ -190,20 +194,26 @@
               <table class="plansTable">
                 <thead>
                 <tr>
-                  <th><span id="twistieHeader" class="apicTwistieIcon" title={% trans %}"Expand / Collapse All API Details"{% endtrans %}><i
-                            class="fa fa-angle-down" data-twistieheaderid="twistie_header"></i></span></th>
-                  <th>{% trans %}Title{% endtrans %}</th>
-                  <th>{% trans %}Version{% endtrans %}</th>
-                  <th>{% trans %}Type{% endtrans %}</th>
-                  <th class="fixedPlanColumnWidth">{% trans %}Rate limits{% endtrans %}</th>
+                  <th scope="col"><button type="button" id="twistieHeader" class="apicTwistieIcon" aria-expanded="false" aria-label="{% trans %}Expand / Collapse All API Details{% endtrans %}"><svg
+                            class="apicTwistieArrow" data-twistieheaderid="twistie_header" aria-hidden="true" focusable="false"
+                            xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
+                            <path d="M8 11L3 6l.7-.7L8 9.6l4.3-4.3.7.7z"/>
+                          </svg></button></th>
+                  <th scope="col">{% trans %}Title{% endtrans %}</th>
+                  <th scope="col">{% trans %}Version{% endtrans %}</th>
+                  <th scope="col">{% trans %}Type{% endtrans %}</th>
+                  <th scope="col" class="fixedPlanColumnWidth">{% trans %}Rate limits{% endtrans %}</th>
                 </tr>
                 </thead>
                 <tbody>
                 {% for api in plan.nodes %}
                   {% set rowIndex = loop.index %}
                   <tr class="tableRow">
-                    <td><span class="apicTwistieIcon rowTwistie" title={% trans %}"Expand / Collapse API Details"{% endtrans %} data-rowid={{ rowIndex }} ><i
-                            class="fa fa-angle-down" data-twistieid="twistie_{{ rowIndex }}"></i></span></td>
+                    <td><button type="button" class="apicTwistieIcon rowTwistie" aria-expanded="false" aria-label="{% trans %}Expand / Collapse API Details{% endtrans %}" aria-controls="row_{{ rowIndex }}" data-rowid="{{ rowIndex }}"><svg
+                            class="apicTwistieArrow" data-twistieid="twistie_{{ rowIndex }}" aria-hidden="true" focusable="false"
+                            xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
+                            <path d="M8 11L3 6l.7-.7L8 9.6l4.3-4.3.7.7z"/>
+                          </svg></button></td>
                     <td>{{ api.title }}</td>
                     <td>{{ api.version[0].value }}</td>
                     <td>{{ api.protocol }}</td>

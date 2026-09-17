@@ -1,14 +1,12 @@
---- core/modules/locale/locale.bulk.inc	2023-04-13 10:27:20
-+++ core/modules/locale/locale.bulk.inc	2023-04-13 10:27:17
-@@ -368,6 +368,11 @@
- function locale_translate_batch_finished($success, array $results) {
-   $logger = \Drupal::logger('locale');
-   if ($success) {
-+    try {
-+      refreshAPICBlocks();
-+    } catch(\Exception $e) {
-+      \Drupal::logger('locale_err')->log('error', 'Error in refreshAPICBlocks()');
-+    }
-     $additions = $updates = $deletes = $skips = 0;
-     if (isset($results['failed_files'])) {
-       if (\Drupal::moduleHandler()->moduleExists('dblog') && \Drupal::currentUser()->hasPermission('access site reports')) {
+--- core/modules/locale/src/LocaleImportBatch.php
++++ core/modules/locale/src/LocaleImportBatch.php
+@@ -298,6 +298,11 @@
+   public function batchFinished(bool $success, array $results): void {
+     $logger = ($this->logger)();
+     if ($success) {
++      try {
++        refreshAPICBlocks();
++      } catch(\Exception $e) {
++        \Drupal::logger('locale_err')->log('error', 'Error in refreshAPICBlocks()');
++      }
+       $additions = $updates = $deletes = $skips = 0;

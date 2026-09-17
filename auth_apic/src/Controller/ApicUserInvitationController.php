@@ -170,18 +170,21 @@ class ApicUserInvitationController extends ControllerBase
     // account forms know to behave differently.
     $this->sessionStore->set('invitation_object', $jwt);
 
-    // check the user email address and attempt to find a matching local account
-    $invited_email = $jwt->getPayload()['email'];
-    $existing_account = $this->userStorage->loadUserByEmailAddress($invited_email);
+    // Check if user already exists by email from the JWT.
+    $existing_account = NULL;
+    $payload = $jwt->getPayload();
+    if (isset($payload['email']) && !empty($payload['email'])) {
+      $email = $payload['email'];
+      $existing_account = $this->userStorage->loadUserByEmailAddress($email);
+    }
 
-    // redirect based on whether we think this user has an account or needs to register
-    if (isset($existing_account)) {
+    if ($existing_account !== NULL) {
       ibm_apim_exit_trace(__CLASS__ . '::' . __FUNCTION__, 'invitation of existing user');
-      return $this->redirect('user.login', ['token' => $invitationToken]);
+      return $this->redirect('user.login');
     }
 
     ibm_apim_exit_trace(__CLASS__ . '::' . __FUNCTION__, 'invitation of new user');
-    return $this->redirect('user.register', ['token' => $invitationToken]);
+    return $this->redirect('user.register');
 
   }
 

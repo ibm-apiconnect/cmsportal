@@ -10603,7 +10603,7 @@ input[type="checkbox"].bx--checkbox {
 }
 
 .bx--global-light-ui .button,
-.bx--global-light-ui .mainProductContent button,
+.bx--global-light-ui .mainProductContent button:not(.apicTwistieIcon),
 .bx--global-light-ui .bx--btn,
 .bx--global-light-ui .btn {
   opacity: 1;
@@ -11049,7 +11049,6 @@ input[type="checkbox"].bx--checkbox {
 .route-consumerorgbilling-delete-payment .main-container .row,
 .route-change-pwd-pagechange-password-form.pass-reset .main-container .row,
 .route-apic-appdisplay-creds .main-container .row,
-form.user-pass-reset,
 .apic-user-form{
   background-color: #ffffff;
   border: unset;
@@ -11994,7 +11993,8 @@ footer.footer {
   display: flex;
   padding: 20px 5%;
   margin-top: 1.5rem;
-  width: 100%;
+  margin-inline-start: var(--drupal-displace-offset-left, var(--admin-toolbar-sidebar-width));
+  width: calc(100% - var(--drupal-displace-offset-left, 0px));
   align-items: center;
   justify-content: center;
 }
@@ -12329,9 +12329,20 @@ nav.block-login .menu.nav {
   white-space: nowrap;
 }
 
+.navbar .nav.navbar-nav {
+  display: flex;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.navbar .nav.navbar-nav>li {
+  flex: 0 0 auto;
+}
+
 .navbar .nav.navbar-nav>li>a {
   padding: 0.625rem 0.75rem;
   border: 2px solid transparent;
+  white-space: nowrap;
 }
 
 .navbar .nav.navbar-nav>li>a:hover {
@@ -15201,6 +15212,32 @@ body.bx--global-light-ui.context--user-password {
 
 .plansTable thead {
   background-color: #e0e0e0;
+}
+
+.bx--global-light-ui .apicPlans button.apicTwistieIcon,
+.bx--global-light-ui .plansTable button.apicTwistieIcon {
+  background: none;
+  border: none;
+  padding: 0;
+  height: auto;
+  min-height: 0;
+  color: inherit;
+}
+
+.bx--global-light-ui .mainProductContent button.planDetail--modalClose {
+  background: none;
+  border: none;
+  cursor: pointer;
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 2rem;
+  height: 2rem;
+  padding: .4rem;
+}
+
+.bx--global-light-ui .mainProductContent button.planDetail--modalClose svg {
+  height: 100%;
 }
 
 .planCard {

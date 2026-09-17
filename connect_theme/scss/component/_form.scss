@@ -564,7 +564,7 @@ input[type="checkbox"].bx--checkbox {
 }
 
 .bx--global-light-ui .button,
-.bx--global-light-ui .mainProductContent  button:not(.ck),
+.bx--global-light-ui .mainProductContent  button:not(.ck):not(.apicTwistieIcon),
 .bx--global-light-ui .bx--btn,
 .bx--global-light-ui .btn {
   opacity: 1;
@@ -945,7 +945,6 @@ input[type="checkbox"].bx--checkbox {
 .route-consumerorgbilling-delete-payment .main-container .row,
 .route-change-pwd-pagechange-password-form.pass-reset .main-container .row,
 .route-apic-appdisplay-creds .main-container .row,
-form.user-pass-reset,
 .apic-user-form, 
 .route-consumerorgdelete-invite .main-container .row {
   background-color: $default-bg-light;

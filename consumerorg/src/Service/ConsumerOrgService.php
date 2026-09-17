@@ -22,6 +22,7 @@ use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\KeyValueStore\KeyValueStoreExpirableInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\TempStore\PrivateTempStoreFactory;
 use Drupal\field\Entity\FieldConfig;
@@ -140,6 +141,12 @@ class ConsumerOrgService {
   protected Utils $utils;
 
   /**
+   * @var \Drupal\Core\KeyValueStore\KeyValueStoreExpirableInterface
+   */
+  protected KeyValueStoreExpirableInterface $invitationRateLimitStore;
+
+
+  /**
    * ConsumerOrgService constructor.
    *
    * @param \Psr\Log\LoggerInterface $logger
@@ -158,6 +165,7 @@ class ConsumerOrgService {
    * @param \Drupal\ibm_apim\UserManagement\ApicAccountInterface $account_service
    * @param ApicUserService $user_service
    * @param \Drupal\ibm_apim\Service\EventLogService $event_log_service
+   * @param \Drupal\Core\KeyValueStore\KeyValueStoreExpirableInterface $invitation_rate_limit_store
    *
    * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
    * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
@@ -178,7 +186,8 @@ class ConsumerOrgService {
                               ApicAccountInterface $account_service,
                               ApicUserService $user_service,
                               EventLogService $event_log_service,
-                              Utils $utils
+                              Utils $utils,
+                              KeyValueStoreExpirableInterface $invitation_rate_limit_store
   ) {
     $this->logger = $logger;
     $this->siteconfig = $site_config;
@@ -198,6 +207,7 @@ class ConsumerOrgService {
     $this->userService = $user_service;
     $this->eventLogService = $event_log_service;
     $this->utils = $utils;
+    $this->invitationRateLimitStore = $invitation_rate_limit_store;
   }
 
   /**
@@ -1527,11 +1537,20 @@ class ConsumerOrgService {
    * @throws \Drupal\Core\Entity\EntityStorageException
    * @throws \JsonException
    */
-  public function inviteMember(ConsumerOrg $org, string $email_address, string $role = NULL): UserManagerResponse {
+  public function inviteMember(ConsumerOrg $org, string $email_address, ?string $role = NULL): UserManagerResponse {
 
     ibm_apim_entry_trace(__CLASS__ . '::' . __FUNCTION__, NULL);
 
     $response = new UserManagerResponse();
+    $normalizedEmail = mb_strtolower(trim($email_address));
+
+    if ($this->hasPendingInvitation($org, $normalizedEmail)) {
+      $response->setSuccess(FALSE);
+      $response->setMessage((string) t('An invitation has already been sent to that email address and is still pending.'));
+      ibm_apim_exit_trace(__CLASS__ . '::' . __FUNCTION__, 'duplicate pending invitation');
+      return $response;
+    }
+
     $apimResponse = $this->apimServer->postMemberInvitation($org, $email_address, $role);
     if ($apimResponse !== NULL && $apimResponse->getCode() === 201) {
       $data = $apimResponse->getData();
@@ -1613,6 +1632,14 @@ class ConsumerOrgService {
     ibm_apim_entry_trace(__CLASS__ . '::' . __FUNCTION__, NULL);
 
     $response = new UserManagerResponse();
+
+    if (!$this->isInvitationResendAllowed($org, $inviteId)) {
+      $response->setSuccess(FALSE);
+      $response->setMessage((string) t('This invitation has been resent too many times recently. Please try again later.'));
+      ibm_apim_exit_trace(__CLASS__ . '::' . __FUNCTION__, 'resend rate limit triggered');
+      return $response;
+    }
+
     $apimResponse = $this->apimServer->resendMemberInvitation($org, $inviteId);
     if ($apimResponse !== NULL && $apimResponse->getCode() === 200) {
 
@@ -1647,6 +1674,80 @@ class ConsumerOrgService {
 
     ibm_apim_exit_trace(__CLASS__ . '::' . __FUNCTION__, NULL);
     return $response;
+  }
+
+  /**
+   * Check whether an invitation for the email address is already pending.
+   */
+  protected function hasPendingInvitation(ConsumerOrg $org, string $emailAddress): bool {
+    foreach ($org->getInvites() ?? [] as $invite) {
+      if (isset($invite['email']) && mb_strtolower(trim($invite['email'])) === $emailAddress) {
+        return TRUE;
+      }
+    }
+
+    return FALSE;
+  }
+
+  /**
+   * Apply resend rate limiting for a single invitation without triggering IP bans.
+   *
+   * The window is anchored to the first resend attempt, not the most recent one.
+   * A separate expiry-tracking key is written once (on the first attempt) so that
+   * subsequent calls within the same window do not reset the TTL.
+   */
+  protected function isInvitationResendAllowed(ConsumerOrg $org, string $inviteId): bool {
+    $hash    = hash('sha256', $org->getUrl() . ':' . $inviteId);
+    $key     = 'consumerorg:invite:resend:' . $hash;
+    $expiryKey = 'consumerorg:invite:resend:expiry:' . $hash;
+
+    $attempts = $this->invitationRateLimitStore->get($key);
+    if (!is_int($attempts)) {
+      $attempts = 0;
+    }
+
+    $limit = $this->getInvitationResendLimit();
+    if ($limit > 0 && $attempts >= $limit) {
+      $this->logger->warning('Invitation resend rate limit reached for invitation @invite in @org', [
+        '@invite' => $inviteId,
+        '@org' => $org->getTitle(),
+      ]);
+      return FALSE;
+    }
+
+    $window = $this->getInvitationResendWindow();
+    if ($attempts === 0) {
+      // First attempt in this window: set both the counter and the expiry anchor.
+      $this->invitationRateLimitStore->setWithExpire($key, 1, $window);
+      $this->invitationRateLimitStore->setWithExpire($expiryKey, \Drupal::time()->getRequestTime() + $window, $window);
+    }
+    else {
+      // Subsequent attempts: preserve the original expiry rather than resetting TTL.
+      $expiresAt = $this->invitationRateLimitStore->get($expiryKey);
+      if (!is_int($expiresAt)) {
+        // Expiry key missing (edge case); treat as a fresh window.
+        $expiresAt = \Drupal::time()->getRequestTime() + $window;
+        $this->invitationRateLimitStore->setWithExpire($expiryKey, $expiresAt, $window);
+      }
+      $remainingTtl = max(1, $expiresAt - \Drupal::time()->getRequestTime());
+      $this->invitationRateLimitStore->setWithExpire($key, $attempts + 1, $remainingTtl);
+    }
+
+    return TRUE;
+  }
+
+  /**
+   * Return the configured invitation resend limit.
+   */
+  protected function getInvitationResendLimit(): int {
+    return (int) \Drupal::config('ibm_apim.settings')->get('invitation_resend_limit');
+  }
+
+  /**
+   * Return the configured invitation resend window in seconds.
+   */
+  protected function getInvitationResendWindow(): int {
+    return (int) \Drupal::config('ibm_apim.settings')->get('invitation_resend_window');
   }
 
   /**
@@ -1746,7 +1847,7 @@ class ConsumerOrgService {
    * @throws \Drupal\Core\Entity\EntityStorageException
    * @throws \JsonException
    */
-  public function changeMemberRole(Member $member, string $role = NULL): UserManagerResponse {
+  public function changeMemberRole(Member $member, ?string $role = NULL): UserManagerResponse {
     ibm_apim_entry_trace(__CLASS__ . '::' . __FUNCTION__, NULL);
     // update APIm
     $newdata = ['role_urls' => [$role]];

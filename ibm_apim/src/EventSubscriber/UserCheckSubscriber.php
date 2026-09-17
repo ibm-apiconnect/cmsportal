@@ -55,7 +55,9 @@ class UserCheckSubscriber implements EventSubscriberInterface
   public function userCheck(ResponseEvent $event): void
   {
     //Add a white list for AJAX request that comes directly from Drupal Core, to avoid errors
-    $white_list_user_not_login = ['product'];
+    $white_list_user_not_login = ['product', 'api'];
+    // Views that should be accessible to anonymous users via AJAX
+    $public_ajax_views = ['search_content', 'products', 'apis'];
 
     // Stop unauthorized users from accessing /user routes to prevent gaining knowledge about which users exist
     $routeObject = \Drupal::routeMatch()->getRouteObject();
@@ -98,6 +100,17 @@ class UserCheckSubscriber implements EventSubscriberInterface
         }
       }
     }
+
+    // Check if this is a public view AJAX request (search, products, apis, etc.)
+    $requestUri = $request->getRequestUri();
+    if (strpos($requestUri, '/views/ajax') !== false) {
+      foreach ($public_ajax_views as $view_name) {
+        if (strpos($requestUri, 'view_name=' . $view_name) !== false) {
+          return;
+        }
+      }
+    }
+
     if (!$request->headers->has('X-UserCheck-Redirect')) {
       $currentUser = \Drupal::currentUser();
       $accept = $request->headers->get('Accept') ?? '';

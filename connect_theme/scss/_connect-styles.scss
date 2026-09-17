@@ -21,6 +21,7 @@
 @import "component/icon";
 @import "component/modal";
 @import "component/navbar";
+@import "component/language-switcher";
 @import "component/node";
 @import "component/overflow-menu";
 @import "component/panel";
@@ -125,13 +126,17 @@ a {
   color: $tertiary-text;
 }
 
+.display-none {
+  display: none !important;
+}
+
 // sticky header
 
 .apicStickyHeader {
   position: fixed;
   top: 0;
   left: 0;
-  z-index: 40;
+  z-index: 500;
   width: 100%;
 }
 
@@ -155,15 +160,49 @@ a {
 .apicMainContent {
 //  margin-top: 60px;
 //  min-height: calc(100vh - 148px);
-  margin-top: 48px;
-  min-height: calc(100vh - 136px);
+  margin-top: 104px;
+  min-height: calc(100vh - 192px);
+}
+
+.apicMainContent .col-sm-12 {
+  float: none !important;
 }
 
 .path-frontpage .apicMainContent,
 .page-node-type-application .apicMainContent,
 .route-ibm-apimmyorg .apicMainContent{
+  margin-top: 104px;
+  min-height: calc(100vh - 192px);
+}
+
+
+
+// When admin top-bar is present, push content down
+// Use attribute selector to detect top-bar presence without relying on body classes
+// This targets any page where the top-bar exists
+.apicMainContent {
+  // Default margin
   margin-top: 48px;
   min-height: calc(100vh - 136px);
+  
+  // When top-bar exists (detected via CSS), add extra margin
+  // Using a high specificity selector that checks for top-bar in the document
+  html:has(aside.top-bar[data-drupal-admin-styles]) & {
+    margin-top: 112px !important;
+    min-height: calc(100vh - 200px);
+  }
+}
+
+.path-frontpage .apicMainContent,
+.page-node-type-application .apicMainContent,
+.route-ibm-apimmyorg .apicMainContent {
+  margin-top: 48px;
+  min-height: calc(100vh - 136px);
+  
+  html:has(aside.top-bar[data-drupal-admin-styles]) & {
+    margin-top: 112px !important;
+    min-height: calc(100vh - 200px);
+  }
 }
 // make front page full width
 // and app, myorg pages too
@@ -177,6 +216,12 @@ a {
   margin-left: 0;
   margin-right: 0;
   width: 100%;
+}
+
+// when the frontpage is product page, give it a 15px padding
+.path-frontpage.context--product .apicMainContent.container{
+  padding-left: 15px;
+  padding-right: 15px;
 }
 
 // title and content wrappers for applications need to honor the media page widths
@@ -1059,6 +1104,32 @@ body.bx--global-light-ui.context--user-password {
   background-color: $table-header-bg;
 }
 
+.bx--global-light-ui .apicPlans button.apicTwistieIcon,
+.bx--global-light-ui .plansTable button.apicTwistieIcon {
+  background: none;
+  border: none;
+  padding: 0;
+  height: auto;
+  min-height: 0;
+  color: inherit;
+}
+
+.bx--global-light-ui .mainProductContent button.planDetail--modalClose {
+  background: none;
+  border: none;
+  cursor: pointer;
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 2rem;
+  height: 2rem;
+  padding: .4rem;
+}
+
+.bx--global-light-ui .mainProductContent button.planDetail--modalClose svg {
+  height: 100%;
+}
+
 .planCard {
   background-color: $card-bg;
 }
@@ -1099,4 +1170,13 @@ body.bx--global-light-ui.context--user-password {
 
 .contentInnerWrapper .productrecommendations {
   background-color: $highlight
+}
+
+@media (min-width: 64rem) {
+  
+
+  [data-drupal-admin-styles].top-bar {
+    top: 48px !important;
+    inset-block-start: 48px !important;
+  }
 }

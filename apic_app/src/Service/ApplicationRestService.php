@@ -464,7 +464,7 @@ class ApplicationRestService implements ApplicationRestInterface {
     $consumerOrg = $org['url'];
 
     if (!isset($consumerOrg)) {
-      \Drupal::messenger()->addError('Consumer organization not set.');
+      \Drupal::messenger()->addError(t('Consumer organization not set.'));
       return NULL;
     }
 

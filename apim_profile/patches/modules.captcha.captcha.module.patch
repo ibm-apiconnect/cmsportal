@@ -1,10 +1,10 @@
---- modules/captcha/captcha.module	2022-06-15 17:40:03.000000000 +0100
-+++ modules/captcha/captcha.module	2022-06-27 15:08:32.000000000 +0100
-@@ -535,6 +535,7 @@
-     $solution = \Drupal::database()
+--- modules/captcha/captcha.module	2026-02-09 14:29:27
++++ modules/captcha/captcha1.module	2026-03-06 16:26:20
+@@ -547,6 +547,7 @@
+     $query = \Drupal::database()
        ->select('captcha_sessions', 'cs')
        ->fields('cs', ['solution'])
 +      ->condition('status', CaptchaConstants::CAPTCHA_STATUS_UNSOLVED)
-       ->condition('csid', $csid)
-       ->execute()
-       ->fetchField();
+       ->condition('csid', $csid);
+     // For non-"show always" persistence, prevent retrieval of solutions for
+     // solved sessions to block replay attacks. Once a CAPTCHA is solved, its

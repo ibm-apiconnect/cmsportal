@@ -229,7 +229,8 @@ class ProductHooks {
       // for each subscription to a product-specific realm
       $options = ['target' => 'default'];
       $query = Database::getConnection($options['target'])
-        ->query("SELECT * FROM apic_app_application_subs WHERE consumerorg_url = '" . $orgUrl . "'", [], $options);
+        ->query("SELECT * FROM apic_app_application_subs WHERE consumerorg_url = :orgUrl",
+          [':orgUrl' => $orgUrl], $options);
       $subResults = $query->fetchAll();
       foreach ($subResults as $sub) {
         if ($sub !== NULL && $sub->product_url !== NULL) {
@@ -244,7 +245,8 @@ class ProductHooks {
         ->query("SELECT tags.consumerorg_tags_value as consumerorg_tags_value
   FROM `node__consumerorg_url` id
   INNER JOIN `node__consumerorg_tags` tags ON id.entity_id = tags.entity_id
-  WHERE (id.consumerorg_url_value = '" . $orgUrl . "')", [], $options);
+  WHERE (id.consumerorg_url_value = :orgUrl)",
+          [':orgUrl' => $orgUrl], $options);
       $doResults = $query->fetchAll();
       $tags = [];
       foreach ($doResults as $do) {
@@ -409,27 +411,64 @@ class ProductHooks {
    */
   #[Hook('theme')]
   public function theme($existing, $type, $theme, $path): array {
-    return [
-      'productrecommendations_block' => [
-        'variables' => [
-          'productRecommendations' => NULL,
-        ],
-      ],
-      'product_select' => [
-        'variables' => [
-          'apiNid' => NULL,
-          'products' => NULL,
-        ],
-      ],
-      'product_wrapper' => [
-        'variables' => [
-          'api' => NULL,
-          'product' => NULL,
-          'showPlaceholders' => TRUE,
-          'showVersions' => TRUE,
-        ],
+    $definitions = [];
+
+    // Node view mode templates for product content type.
+    $template_map = [
+      'full' => 'node--product',
+      'teaser' => 'node--product--teaser',
+      'card' => 'node--product--card',
+      'subscribewizard' => 'node--product--subscribewizard',
+    ];
+
+    $theme_name = \Drupal::theme()->getActiveTheme()->getName();
+    $theme_path = \Drupal::service('extension.list.theme')->getPath($theme_name);
+    $module_path = \Drupal::service('extension.list.module')->getPath('product');
+
+    foreach ($template_map as $view_mode => $template_file) {
+      $template_path = '';
+
+      if (file_exists($theme_path . '/templates/node/' . $template_file . '.html.twig')) {
+        $template_path = $theme_path . '/templates/node';
+      }
+      elseif (file_exists($theme_path . '/templates/' . $template_file . '.html.twig')) {
+        $template_path = $theme_path . '/templates';
+      }
+      else {
+        $template_path = $module_path . '/templates';
+      }
+
+      $definitions['node__product__' . $view_mode] = [
+        'base hook' => 'node',
+        'template' => $template_file,
+        'path' => $template_path,
+      ];
+    }
+
+    // Existing theme hooks (keep these as-is)
+    $definitions['productrecommendations_block'] = [
+      'variables' => [
+        'productRecommendations' => NULL,
       ],
     ];
+
+    $definitions['product_select'] = [
+      'variables' => [
+        'apiNid' => NULL,
+        'products' => NULL,
+      ],
+    ];
+
+    $definitions['product_wrapper'] = [
+      'variables' => [
+        'api' => NULL,
+        'product' => NULL,
+        'showPlaceholders' => TRUE,
+        'showVersions' => TRUE,
+      ],
+    ];
+
+    return $definitions;
   }
 
   /**

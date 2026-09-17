@@ -145,6 +145,12 @@ ibm_apim.settings:
     enable_oidc_login_form:
       type: boolean
       label: 'Enable the OIDC login form.'
+    invitation_resend_limit:
+      type: integer
+      label: 'Invitation resend limit'
+    invitation_resend_window:
+      type: integer
+      label: 'Invitation resend window in seconds'
     categories:
       type: mapping
       label: 'Categories'

@@ -1,35 +1,37 @@
---- core/modules/locale/src/StreamWrapper/TranslationsStream.php	2025-06-05 23:34:52.000000000 +0000
-+++ core/modules/locale/src/StreamWrapper/TranslationsStream.php	2025-06-25 17:08:18.392968180 +0000
-@@ -2,7 +2,7 @@
+--- core/modules/locale/src/StreamWrapper/TranslationsStream.php	2025-07-12 22:28:03
++++ core/modules/locale/src/StreamWrapper/TranslationsStream.php	2025-07-12 22:37:25
+@@ -4,7 +4,7 @@
  
- namespace Drupal\locale\StreamWrapper;
- 
+ use Drupal\Core\File\FileSystemInterface;
+ use Drupal\Core\Site\Settings;
 -use Drupal\Core\StreamWrapper\LocalStream;
 +use Drupal\Core\StreamWrapper\PrivateStream;
  use Drupal\Core\StreamWrapper\StreamWrapperInterface;
+ use Drupal\Core\StringTranslation\StringTranslationTrait;
  
- /**
-@@ -10,7 +10,7 @@
+@@ -13,7 +13,7 @@
   *
   * Provides support for storing translation files.
   */
 -class TranslationsStream extends LocalStream {
 +class TranslationsStream extends PrivateStream {
  
-   /**
-    * {@inheritdoc}
-@@ -39,14 +39,4 @@
-   public function getDirectoryPath() {
-     return \Drupal::config('locale.settings')->get('translation.path');
+   use StringTranslationTrait;
+ 
+@@ -45,16 +45,6 @@
+     return static::basePath();
    }
--
+ 
 -  /**
+-   * phpcs:ignore Drupal.Files.LineLength
 -   * Implements Drupal\Core\StreamWrapper\StreamWrapperInterface::getExternalUrl().
+-   *
 -   * @throws \LogicException
 -   *   PO files URL should not be public.
 -   */
 -  public function getExternalUrl() {
 -    throw new \LogicException('PO files URL should not be public.');
 -  }
--
- }
+ 
+   /**
+    * Returns the base path for translations://.

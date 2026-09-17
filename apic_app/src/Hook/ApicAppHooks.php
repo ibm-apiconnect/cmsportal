@@ -166,6 +166,17 @@ class ApicAppHooks {
           unset($form['actions']['delete']);
         }
         break;
+      case 'application_create_form':
+      case 'application_update_form':
+      case 'modal_application_create_form':
+        // Translate maxlength labels for title and description fields
+        if (isset($form['title']['widget'][0]['value']['#attributes']['maxlength_js_label'][0])) {
+          $form['title']['widget'][0]['value']['#attributes']['maxlength_js_label'][0] = t('Title is limited to @limit characters, remaining: <strong>@remaining</strong>');
+        }
+        if (isset($form['apic_summary']['widget'][0]['value']['#attributes']['maxlength_js_label'][0])) {
+          $form['apic_summary']['widget'][0]['value']['#attributes']['maxlength_js_label'][0] = t('Description is limited to @limit characters, remaining: <strong>@remaining</strong>');
+        }
+        break;
       case 'node_application_edit_form':
         // disable fields to stop admin editing applications
         $currentUser = \Drupal::currentUser();
@@ -215,82 +226,126 @@ class ApicAppHooks {
    */
   #[Hook('theme')]
   public function theme($existing, $type, $theme, $path): array {
-    return [
-      'new_application' => [
+    $definitions = [];
+
+    // Node view mode templates for 'application' content type
+    $template_map = [
+        'full' => 'node--application',
+        'card' => 'node--application--card',
+        'teaser' => 'node--application--teaser',
+        'subscribewizard' => 'node--application--subscribewizard',
+    ];
+
+    $theme_name = \Drupal::theme()->getActiveTheme()->getName();
+    $theme_path = \Drupal::service('extension.list.theme')->getPath($theme_name);
+    $module_path = \Drupal::service('extension.list.module')->getPath('apic_app');
+
+    foreach ($template_map as $view_mode => $template_file) {
+        if (file_exists($theme_path . '/templates/node/' . $template_file . '.html.twig')) {
+            $template_path = $theme_path . '/templates/node';
+        } elseif (file_exists($theme_path . '/templates/' . $template_file . '.html.twig')) {
+            $template_path = $theme_path . '/templates';
+        } else {
+            $template_path = $module_path . '/templates';
+        }
+
+        $definitions['node__application__' . $view_mode] = [
+            'base hook' => 'node',
+            'template' => $template_file,
+            'path' => $template_path,
+        ];
+    }
+
+    // Existing custom templates
+   $definitions['new_application'] = [
+    'variables' => ['access' => FALSE],
+    ];
+
+    // Declare the views exposed form template for the applications view
+    $definitions['views_exposed_form__applications'] = [
+      'render element' => 'form', // keep this so default preprocessing works
+      'template' => 'views-exposed-form--applications',
+      'path' => $module_path . '/templates',
+    ];
+
+
+    $definitions['application_subscriptions'] = [
         'variables' => [
-          'access' => FALSE
+            'catalogId' => NULL,
+            'catalogName' => NULL,
+            'porgId' => NULL,
+            'userHasAppManage' => FALSE,
+            'userHasSubManage' => FALSE,
+            'userHasSubView' => FALSE,
+            'applifecycleEnabled' => FALSE,
+            'appImageUploadEnabled' => FALSE,
+            'notifications_access' => FALSE,
+            'analytics_access' => FALSE,
+            'node' => NULL,
+            'subscriptions' => NULL,
+            'credentials' => NULL,
         ],
-      ],
-      'application_subscriptions' => [
+    ];
+
+    $definitions['application_analytics'] = [
         'variables' => [
-          'catalogId' => NULL,
-          'catalogName' => NULL,
-          'porgId' => NULL,
-          'userHasAppManage' => FALSE,
-          'userHasSubManage' => FALSE,
-          'userHasSubView' => FALSE,
-          'applifecycleEnabled' => FALSE,
-          'appImageUploadEnabled' => FALSE,
-          'notifications_access' => FALSE,
-          'analytics_access' => FALSE,
-          'node' => NULL,
-          'subscriptions' => NULL,
-          'credentials' => NULL,
+            'catalogId' => NULL,
+            'catalogName' => NULL,
+            'porgId' => NULL,
+            'userHasAppManage' => FALSE,
+            'userHasSubManage' => FALSE,
+            'userHasSubView' => FALSE,
+            'applifecycleEnabled' => FALSE,
+            'notifications_access' => FALSE,
+            'appImageUploadEnabled' => FALSE,
+            'node' => NULL,
         ],
-      ],
-      'application_analytics' => [
+    ];
+
+    $definitions['application_activity'] = [
         'variables' => [
-          'catalogId' => NULL,
-          'catalogName' => NULL,
-          'porgId' => NULL,
-          'userHasAppManage' => FALSE,
-          'userHasSubManage' => FALSE,
-          'userHasSubView' => FALSE,
-          'applifecycleEnabled' => FALSE,
-          'notifications_access' => FALSE,
-          'appImageUploadEnabled' => FALSE,
-          'node' => NULL,
+            'catalogId' => NULL,
+            'catalogName' => NULL,
+            'porgId' => NULL,
+            'userHasAppManage' => FALSE,
+            'userHasSubManage' => FALSE,
+            'userHasSubView' => FALSE,
+            'applifecycleEnabled' => FALSE,
+            'appImageUploadEnabled' => FALSE,
+            'analytics_access' => FALSE,
+            'notifications_access' => FALSE,
+            'node' => NULL,
+            'events' => [],
         ],
-      ],
-      'application_activity' => [
+    ];
+
+    $definitions['app_credentials'] = [
         'variables' => [
-          'catalogId' => NULL,
-          'catalogName' => NULL,
-          'porgId' => NULL,
-          'userHasAppManage' => FALSE,
-          'userHasSubManage' => FALSE,
-          'userHasSubView' => FALSE,
-          'applifecycleEnabled' => FALSE,
-          'appImageUploadEnabled' => FALSE,
-          'analytics_access' => FALSE,
-          'notifications_access' => FALSE,
-          'node' => NULL,
-          'events' => [],
+            'node' => NULL,
+            'clipboard' => NULL,
+            'userHasAppManage' => FALSE,
+            'allowNewCredentials' => FALSE,
+            'allowClientidReset' => FALSE,
+            'allowClientsecretReset' => FALSE,
         ],
-      ],
-      'app_credentials' => [
+    ];
+
+    $definitions['app_subscriptions'] = [
         'variables' => [
-          'node' => NULL,
-          'clipboard' => NULL,
-          'userHasAppManage' => FALSE,
-          'allowNewCredentials' => FALSE,
-          'allowClientidReset' => FALSE,
-          'allowClientsecretReset' => FALSE,
-        ],
-      ],
-      'app_subscriptions' => [
-        'variables' => [
-          'node' => NULL,
-          'userHasAppManage' => FALSE,
-          'userHasSubView' => FALSE,
-          'userHasSubManage' => FALSE,
-          'showVersions' => FALSE,
-          'billing_enabled' => FALSE,
+            'node' => NULL,
+            'userHasAppManage' => FALSE,
+            'userHasSubView' => FALSE,
+            'userHasSubManage' => FALSE,
+            'showVersions' => FALSE,
+            'billing_enabled' => FALSE,
         ],
         'template' => 'app-subscriptions',
-      ]
     ];
+
+    return $definitions;
   }
+
+
 
   /**
    * Implements hook_ENTITY_TYPE_presave().

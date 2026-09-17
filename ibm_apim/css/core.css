@@ -797,7 +797,8 @@ a.button.disabled {
 .context-user-password.bx--global-light-ui .form-item,
 .context-ibm-apim-activate-x.bx--global-light-ui .form-item,
 .context-user-register.bx--global-light-ui .form-item,
-.context-user-register .form-item {
+.context-user-register .form-item,
+.context-user-forgot-password .form-item {
   width: 100%;
   margin: auto;
   padding-top: 0.75rem;;
@@ -926,7 +927,8 @@ form[class*='change-pwd-form'] .password-parent,
 
 body.bx--global-light-ui.context--user-login,
 body.bx--global-light-ui.context--user-register,
-body.bx--global-light-ui.context--user-password {
+body.bx--global-light-ui.context--user-password,
+body.bx--global-light-ui.context--user-forgot-password {
   background-color: white;
 }
 
@@ -1527,4 +1529,21 @@ span.cron-description__run-cron a {
 
 .apicMyOrg .dropit-icon #icon .st0 {
   fill: none;
+}
+
+#navigation-link-ibm-apic-getting-startedtutorials .toolbar-button--icon--ibm-apic-getting-started-tutorials::before {
+  background-image: url("../images/getting-started-icon.svg");
+  background-size: contain;
+  background-repeat: no-repeat;
+  content: "";
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+}
+
+/* temp-measure-line is used only for calculating line height */
+.temp-measure-line {
+    visibility: hidden;
+    white-space: pre-wrap;
 }

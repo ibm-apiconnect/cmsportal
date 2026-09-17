@@ -43,6 +43,47 @@ Feature: Subscription
     And I should see the link 'myapp_@now'
     And I should see the text 'Default Plan'
 
+  Scenario: Application subscriptions can be sorted by plan name and product title
+    Given I have an analytics service
+    Given users:
+      | name              | mail              | pass                  | status |
+      | @data(andre.mail) | @data(andre.mail) | @data(andre.password) | 1      |
+    Given consumerorgs:
+      | title                          | name                          | id                          | owner             |
+      | @data(andre.consumerorg.title) | @data(andre.consumerorg.name) | @data(andre.consumerorg.id) | @data(andre.mail) |
+    Given I am logged in as "@data(andre.mail)"
+    And I create an application named "testapp_@now" id "testid_@now" consumerorgurl "/consumer-orgs/1234/5678/@data(andre.consumerorg.id)"
+    And I publish an api with the name "api_test_@now" and id "api_test_@now"
+    And I publish a product with the name "product_test_@now", id "product_test_@now", apis "api_test_@now" and plan name "Test Plan"
+    And I subscribe application "testid_@now" to product "product_test_@now" with plan "Test Plan"
+    And I am at "/application"
+    When I click "testapp_@now"
+    And I click "Subscriptions"
+    # Test sorting by Plan Name descending (default)
+    When I select "Plan" from "sort_by"
+    And I press "Apply"
+    And I wait 4 seconds
+    Then the current URL should contain "sort_by=plan_title"
+    And the current URL should contain "sort_order=DESC"
+    # Test sorting by Plan Name ascending
+    When I select "ASC" from "sort_order"
+    And I press "Apply"
+    And I wait 4 seconds
+    Then the current URL should contain "sort_by=plan_title"
+    And the current URL should contain "sort_order=ASC"
+    # Test sorting by Product ascending (order persists from previous selection)
+    When I select "Product" from "sort_by"
+    And I press "Apply"
+    And I wait 4 seconds
+    Then the current URL should contain "sort_by=product_title"
+    And the current URL should contain "sort_order=ASC"
+    # Test sorting by Product descending
+    When I select "DESC" from "sort_order"
+    And I press "Apply"
+    And I wait 4 seconds
+    Then the current URL should contain "sort_by=product_title"
+    And the current URL should contain "sort_order=DESC"
+
   Scenario: Subscription Wizard when logged in and selecting an API via Get Access button
     Given users:
       | name              | mail              | pass                  | status |
@@ -364,3 +405,39 @@ Feature: Subscription
     And I should see the text "Unsubscribe"
     And there are no errors
     And there are no errors
+
+  Scenario: Subscription Wizard Cancel and Back button visibility via Get Access
+    Given users:
+      | name              | mail              | pass                  | status |
+      | @data(andre.mail) | @data(andre.mail) | @data(andre.password) | 1      |
+    Given consumerorgs:
+      | title                          | name                          | id     | owner             |
+      | @data(andre.consumerorg.title) | @data(andre.consumerorg.name) | 123456 | @data(andre.mail) |
+    Given I am logged in as "@data(andre.mail)"
+    And I create an application named "myapp_@now" id "myid_@now" consumerorgurl "/consumer-orgs/1234/5678/123456"
+    And I publish an api with the name "api1_@now" and id "api1_@now"
+    And I publish a product with the name "product1_@now", id "product1_@now", apis "api1_@now" and visibility "pub" true true
+    And I am on "/product/product1_@now/api/api1_@now"
+
+    # Step 1: chooseplan step - Cancel visible, no Back button
+    When I click "Get access"
+    Then I should see the text 'Select Plan'
+    And I should see the link 'Cancel'
+    And I should not see the button "Back"
+
+    # Step 2: chooseapp step - Cancel visible, no Back button
+    When I click "Select"
+    Then I should see the text 'Select an existing application or create a new application'
+    And I should see the link 'Cancel'
+    And I should not see the button "Back"
+
+    # Step 3: confirm step - Cancel visible, Back button now visible
+    When I press the "myapp_@now" button
+    Then I should see the text 'Confirm Subscription'
+    And I should see the link 'Cancel'
+    And I should see the button "Back"
+
+    # Step 4: summary step - subscription complete, Cancel visible
+    When I press the "Next" button
+    Then I should see the text 'Subscription Complete'
+    And I should not see the button "Back"

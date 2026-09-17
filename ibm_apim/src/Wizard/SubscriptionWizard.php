@@ -85,12 +85,25 @@ class SubscriptionWizard extends FormWizardBase {
    *
    * @return array
    */
-  public function buildForm(array $form, FormStateInterface $form_state): array {
+   public function buildForm(array $form, FormStateInterface $form_state): array {
     $form = parent::buildForm($form, $form_state);
+    
+    // Remove the previous button on chooseapp step (second step) 
     if (isset($form['actions']['previous'])) {
-      $form['actions']['previous']['#value'] = t('Back');
-      $form['actions']['previous']['#attributes'] = ['class' => ['button', 'apicSecondary']];
+      $cached_values = $form_state->getTemporaryValue('wizard');
+      // Check if we're on chooseapp step by looking at the current route
+      $current_route = \Drupal::routeMatch()->getRouteName();
+      if ($current_route === 'ibm_apim.subscription_wizard.step' &&
+          \Drupal::routeMatch()->getParameter('step') === 'chooseapp') {
+        // Remove previous button on chooseapp - Cancel will be shown instead
+        unset($form['actions']['previous']);
+      }
+      else {
+        $form['actions']['previous']['#value'] = t('Back');
+        $form['actions']['previous']['#attributes'] = ['class' => ['button', 'apicSecondary']];
+      }
     }
+    
     $cached_values = $form_state->getTemporaryValue('wizard');
     // commented out since this seems to break the wizard and the summary screen never appears
     //$step = $this->getStep($cached_values);
@@ -104,6 +117,7 @@ class SubscriptionWizard extends FormWizardBase {
         '#url' => Url::fromRoute('view.products.page_1'),
         '#attributes' => ['class' => ['button', 'apicTertiary']],
       ] + $form['actions'];
+
 
     return $form;
   }

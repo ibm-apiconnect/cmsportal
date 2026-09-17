@@ -1,7 +1,5 @@
-diff --git modules/captcha/modules/image_captcha/js/image_captcha_refresh.js modules/captcha/modules/image_captcha/js/image_captcha_refresh.js
-index 63f3a142b04..ab7ab67e070 100644
---- modules/captcha/modules/image_captcha/js/image_captcha_refresh.js
-+++ modules/captcha/modules/image_captcha/js/image_captcha_refresh.js
+--- modules/captcha/modules/image_captcha/js/image_captcha_refresh.js	2025-07-31 10:47:51
++++ modules/captcha/modules/image_captcha/js/image_captcha_refresh.js	2025-07-31 10:50:00
 @@ -25,10 +25,14 @@
          const url = baseUrl.replace(/\/$/g, '') + '/' + $(this).attr('href').replace(/^\//g, '') + '?' + date.getTime();
          // Adding loader.

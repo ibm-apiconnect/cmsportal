@@ -1,34 +1,34 @@
---- core/modules/menu_ui/menu_ui.module	2018-11-07 19:36:14.000000000 +0000
-+++ core/modules/menu_ui/menu_ui.module	2018-11-07 20:16:24.000000000 +0000
+--- core/modules/menu_ui/src/MenuUiUtility.php	2018-11-07 19:36:14.000000000 +0000
++++ core/modules/menu_ui/src/MenuUiUtility.php	2018-11-07 20:16:24.000000000 +0000
 @@ -8,6 +8,7 @@
- use Drupal\menu_link_content\Entity\MenuLinkContent;
- use Drupal\node\NodeTypeInterface;
+ use Drupal\Core\Entity\EntityRepositoryInterface;
+ use Drupal\Core\Entity\EntityTypeManagerInterface;
  use Drupal\node\NodeInterface;
 +use Drupal\Core\Language\LanguageInterface;
-
+ 
  /**
-  * Helper function to create or update a menu link for a node.
-@@ -66,6 +67,7 @@
-   /** @var \Drupal\node\NodeTypeInterface $node_type */
-   $node_type = $node->type->entity;
-   $menu_name = strtok($node_type->getThirdPartySetting('menu_ui', 'parent', 'main:'), ':');
-+  $langcode = $node->language()->getId();
-   $defaults = FALSE;
-   if ($node->id()) {
-     $id = FALSE;
-@@ -76,6 +78,7 @@
-         ->accessCheck(TRUE)
-         ->condition('link.uri', 'entity:node/' . $node->id())
-         ->condition('menu_name', $menu_name)
-+        ->condition('langcode', array($langcode, LanguageInterface::LANGCODE_NOT_SPECIFIED, LanguageInterface::LANGCODE_NOT_APPLICABLE), 'IN')
-         ->sort('id', 'ASC')
-         ->range(0, 1);
-       $result = $query->execute();
-@@ -88,6 +91,7 @@
-         ->accessCheck(TRUE)
-         ->condition('link.uri', 'entity:node/' . $node->id())
-         ->condition('menu_name', array_values($type_menus), 'IN')
-+        ->condition('langcode', array($langcode, LanguageInterface::LANGCODE_NOT_SPECIFIED, LanguageInterface::LANGCODE_NOT_APPLICABLE), 'IN')
-         ->sort('id', 'ASC')
-         ->range(0, 1);
-       $result = $query->execute();
+  * Utility functions for menu_ui.
+@@ -103,6 +104,7 @@
+     $defaults = FALSE;
+     if ($node->id()) {
+       $id = FALSE;
++      $langcode = $node->language()->getId();
+       // Give priority to the default menu.
+       $type_menus = $node_type->getThirdPartySetting('menu_ui', 'available_menus', ['main']);
+       // An existing menu link either points to the canonical or the latest
+@@ -116,6 +118,7 @@
+           ->accessCheck()
+           ->condition('link.uri', $uri_candidates, 'IN')
+           ->condition('menu_name', $menu_name)
++          ->condition('langcode', [$langcode, LanguageInterface::LANGCODE_NOT_SPECIFIED, LanguageInterface::LANGCODE_NOT_APPLICABLE], 'IN')
+           ->sort('id')
+           ->range(0, 1);
+         $result = $query->execute();
+@@ -129,6 +132,7 @@
+           ->accessCheck()
+           ->condition('link.uri', $uri_candidates, 'IN')
+           ->condition('menu_name', array_values($type_menus), 'IN')
++          ->condition('langcode', [$langcode, LanguageInterface::LANGCODE_NOT_SPECIFIED, LanguageInterface::LANGCODE_NOT_APPLICABLE], 'IN')
+           ->sort('id')
+           ->range(0, 1);
+         $result = $query->execute();

@@ -77,7 +77,7 @@ function apic_api_preprocess_node(&$variables): void {
     $renderApiSchemaView = (boolean) $config->get('render_api_schema_view');
     $api_max_depth = $config->get('api_max_depth');
     if ($api_max_depth === NULL || !is_int($api_max_depth) || $api_max_depth < 2 || $api_max_depth > 25) {
-      $api_max_depth = 9;
+      $api_max_depth = 5;
     }
     $variables['apiMaxDepth'] = $api_max_depth;
     $variables['#cache']['max-age'] = 0;
@@ -150,7 +150,7 @@ function apic_api_preprocess_node(&$variables): void {
       $certificateStripPrefix = (boolean) $config->get('certificate_strip_prefix');
       $codeSnippetLangs = [];
       $routerType = $config->get('router_type', 'hash');
-      $exampleArrayItems = (int) $config->get('example_array_items') ?: 3;
+      $exampleArrayItems = (int) $config->get('example_array_items') ?: 1;
       $codeSnippets = $config->get('codesnippets');
       $firstEnabled = NULL;
       foreach ($codeSnippets as $lang => $enabled) {

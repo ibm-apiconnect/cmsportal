@@ -396,4 +396,89 @@ class UserCheckSubscriberTest extends TestCase {
     $this->assertInstanceOf(RedirectResponse::class, $newResponse);
     $this->assertEquals(307, $newResponse->getStatusCode());
   }
+
+  /**
+   * Test that public AJAX views (search_content, products, apis) are accessible to anonymous users.
+   */
+  public function testPublicAjaxViewsAccessibleToAnonymous(): void {
+    $account = $this->createMock(AccountInterface::class);
+    $account->method('isAuthenticated')->willReturn(false);
+    
+    $this->container->set('current_user', $account);
+    
+    $publicViews = ['search_content', 'products', 'apis'];
+    
+    foreach ($publicViews as $viewName) {
+      $request = Request::create(
+        '/views/ajax?view_name=' . $viewName . '&view_display_id=page_1',
+        'GET',
+        [],
+        [],
+        [],
+        [
+          'HTTP_ACCEPT' => 'application/json',
+        ]
+      );
+      
+      $this->requestStack->pop();
+      $this->requestStack->push($request);
+      
+      $routeMatch = $this->createMock(RouteMatchInterface::class);
+      $routeMatch->method('getRouteObject')->willReturn(null);
+      $this->container->set('current_route_match', $routeMatch);
+      
+      $response = new Response();
+      $kernel = $this->createMock(HttpKernelInterface::class);
+      $event = new ResponseEvent($kernel, $request, HttpKernelInterface::MAIN_REQUEST, $response);
+      
+      $subscriber = new UserCheckSubscriber($this->logger, $this->messenger);
+      $subscriber->userCheck($event);
+      
+      // Should not redirect for public views
+      $this->assertNotInstanceOf(RedirectResponse::class, $event->getResponse(),
+        "View '{$viewName}' should be accessible to anonymous users");
+      $this->assertEquals(200, $event->getResponse()->getStatusCode());
+    }
+  }
+
+  /**
+   * Test that non-public AJAX views still require authentication.
+   */
+  public function testNonPublicAjaxViewsRequireAuthentication(): void {
+    $account = $this->createMock(AccountInterface::class);
+    $account->method('isAuthenticated')->willReturn(false);
+    
+    $this->container->set('current_user', $account);
+    
+    $request = Request::create(
+      '/views/ajax?view_name=private_content&view_display_id=page_1',
+      'GET',
+      [],
+      [],
+      [],
+      [
+        'HTTP_ACCEPT' => 'application/json',
+        'HTTP_REFERER' => 'https://example.com/private-page',
+      ]
+    );
+    
+    $this->requestStack->pop();
+    $this->requestStack->push($request);
+    
+    $routeMatch = $this->createMock(RouteMatchInterface::class);
+    $routeMatch->method('getRouteObject')->willReturn(null);
+    $this->container->set('current_route_match', $routeMatch);
+    
+    $response = new Response();
+    $kernel = $this->createMock(HttpKernelInterface::class);
+    $event = new ResponseEvent($kernel, $request, HttpKernelInterface::MAIN_REQUEST, $response);
+    
+    $subscriber = new UserCheckSubscriber($this->logger, $this->messenger);
+    $subscriber->userCheck($event);
+    
+    // Should redirect because this is not a public view
+    $newResponse = $event->getResponse();
+    $this->assertInstanceOf(RedirectResponse::class, $newResponse);
+    $this->assertEquals(307, $newResponse->getStatusCode());
+  }
 }

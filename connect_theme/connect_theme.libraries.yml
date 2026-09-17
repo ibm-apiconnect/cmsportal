@@ -70,3 +70,21 @@ fix-tabledrag:
     - core/drupal
     - core/jquery
     - core/once
+
+remove-article-dir:
+  version: 1.x
+  js:
+    js/remove-article-dir.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
+
+# Language switcher select dropdown
+language_switcher:
+  version: 1.x
+  js:
+    js/language-switcher.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/jquery.once

@@ -380,6 +380,20 @@ function apic_app_views_data() {
     ],
   ];
 
+  $data['apic_app_application_subs']['product_title'] = [
+    'title' => t('Product Title'),
+    'help' => t('The product display title.'),
+    'field' => [
+      'id' => 'standard',
+    ],
+    'sort' => [
+      'id' => 'standard',
+    ],
+    'filter' => [
+      'id' => 'string',
+    ],
+  ];
+
   $data['apic_app_application_subs']['plan'] = [
     'title' => t('Plan'),
     'help' => t('The plan name.'),
@@ -391,6 +405,48 @@ function apic_app_views_data() {
     ],
     'filter' => [
       'id' => 'string',
+    ],
+  ];
+
+  $data['apic_app_application_subs']['plan_title'] = [
+    'title' => t('Plan Title'),
+    'help' => t('The plan display title.'),
+    'field' => [
+      'id' => 'standard',
+    ],
+    'sort' => [
+      'id' => 'standard',
+    ],
+    'filter' => [
+      'id' => 'string',
+    ],
+  ];
+
+  $data['apic_app_application_subs']['product_title_missing'] = [
+    'title' => t('Product Title Missing'),
+    'help' => t('Whether the product title is missing (1) or present (0).'),
+    'field' => [
+      'id' => 'standard',
+    ],
+    'sort' => [
+      'id' => 'standard',
+    ],
+    'filter' => [
+      'id' => 'numeric',
+    ],
+  ];
+
+  $data['apic_app_application_subs']['plan_title_missing'] = [
+    'title' => t('Plan Title Missing'),
+    'help' => t('Whether the plan title is missing (1) or present (0).'),
+    'field' => [
+      'id' => 'standard',
+    ],
+    'sort' => [
+      'id' => 'standard',
+    ],
+    'filter' => [
+      'id' => 'numeric',
     ],
   ];
 
@@ -409,4 +465,108 @@ function apic_app_views_data() {
   ];
 
   return $data;
+}
+/**
+ * Implements hook_views_query_alter().
+ */
+function apic_app_views_query_alter(\Drupal\views\ViewExecutable $view, \Drupal\views\Plugin\views\query\QueryPluginBase $query) {
+  if ($view->id() !== 'application_subscriptions' || $view->current_display !== 'block_1') {
+    return;
+  }
+
+  if (!$query instanceof \Drupal\views\Plugin\views\query\Sql) {
+    return;
+  }
+
+  $exposed = $view->getExposedInput();
+  $sort_by = $exposed['sort_by'] ?? 'id';
+  $sort_order = strtoupper($exposed['sort_order'] ?? 'ASC');
+  if (!in_array($sort_order, ['ASC', 'DESC'], TRUE)) {
+    $sort_order = 'ASC';
+  }
+
+  $sorts = [
+    'id' => [
+      ['field' => 'id', 'order' => $sort_order],
+    ],
+    'plan_title' => [
+      ['field' => 'plan_title_missing', 'order' => 'ASC'],
+      ['field' => 'plan_title', 'order' => $sort_order],
+    ],
+    'product_title' => [
+      ['field' => 'product_title_missing', 'order' => 'ASC'],
+      ['field' => 'product_title', 'order' => $sort_order],
+    ],
+  ];
+
+  if (!isset($sorts[$sort_by])) {
+    return;
+  }
+
+  $query->orderby = [];
+  foreach ($sorts[$sort_by] as $sort) {
+    $query->addOrderBy('apic_app_application_subs', $sort['field'], $sort['order']);
+  }
+}
+
+
+/**
+ * Implements hook_apic_app_migrate().
+ *
+ * Invalidates the subscription migration cache when a subscription is migrated.
+ * Uses org-specific cache tag invalidation to avoid clearing unrelated dev orgs.
+ */
+function apic_app_apic_app_migrate($node, $data, $appId, $planId, $subId) {
+  ibm_apim_entry_trace(__FUNCTION__, NULL);
+
+  // Get the consumer org URL from the application node
+  $consumerOrgUrl = NULL;
+  if ($node && $node->hasField('application_consumer_org_url')) {
+    $consumerOrgUrl = $node->get('application_consumer_org_url')->value;
+  }
+
+  // Invalidate org-specific migration cache using cache tags
+  // This only clears cache for the specific dev org, not all orgs
+  if ($consumerOrgUrl) {
+    $orgHash = md5($consumerOrgUrl);
+    \Drupal\Core\Cache\Cache::invalidateTags(['apic_app_migrations:' . $orgHash]);
+
+    \Drupal::logger('apic_app')->info('Subscription migration cache invalidated for org @org after migration of subscription @subId', [
+      '@org' => $orgHash,
+      '@subId' => $subId,
+    ]);
+  } else {
+    // Fallback: invalidate all if we can't determine the org
+    \Drupal\Core\Cache\Cache::invalidateTags(['apic_app_migrations']);
+
+    \Drupal::logger('apic_app')->warning('Could not determine consumer org for migration, cleared all migration caches for subscription @subId', [
+      '@subId' => $subId,
+    ]);
+  }
+
+  ibm_apim_exit_trace(__FUNCTION__, NULL);
+}
+
+/**
+ * Implements hook_user_logout().
+ *
+ * Invalidates subscription migration cache on logout using cache tags.
+ */
+function apic_app_user_logout($account) {
+  ibm_apim_entry_trace(__FUNCTION__, $account->id());
+
+  try {
+    // Invalidate user-specific migration cache using cache tags
+    \Drupal\Core\Cache\Cache::invalidateTags(['user:' . $account->id()]);
+
+    \Drupal::logger('apic_app')->info('Subscription migration cache cleared on logout for user @uid', [
+      '@uid' => $account->id(),
+    ]);
+  } catch (\Exception $e) {
+    \Drupal::logger('apic_app')->error('Failed to clear migration cache on logout: @message', [
+      '@message' => $e->getMessage(),
+    ]);
+  }
+
+  ibm_apim_exit_trace(__FUNCTION__, NULL);
 }

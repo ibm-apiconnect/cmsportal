@@ -14,9 +14,11 @@
 namespace Drupal\ibm_apim\Controller;
 
 use Drupal\apic_api\Service\ApiUtils;
+use Drupal\consumerorg\ApicType\Member;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Url;
 use Drupal\ibm_apim\ApicRest;
+use Drupal\ibm_apim\ApicType\ApicUser;
 use Drupal\ibm_apim\Service\AnalyticsService;
 use Drupal\ibm_apim\Service\SiteConfig;
 use Drupal\ibm_apim\Service\UserUtils;
@@ -107,6 +109,7 @@ class AnalyticsController extends ControllerBase {
     $consumerorgId = NULL;
     $consumerorgNid = NULL;
     $consumerorgTitle = NULL;
+    $members = [];
 
     if (isset($consumerOrg['url'])) {
       $query = \Drupal::entityQuery('node');
@@ -119,6 +122,24 @@ class AnalyticsController extends ControllerBase {
         if ($consumerorg !== NULL) {
           $consumerorgId = $consumerorg->consumerorg_id->value;
           $consumerorgTitle = $consumerorg->getTitle();
+          
+          // Process members (excluding owner) for member count check
+          $myorgOwnerUrl = $consumerorg->consumerorg_owner->value;
+          $cOrgMembers = $consumerorg->consumerorg_members->getValue();
+          if ($cOrgMembers !== NULL) {
+            $orgService = \Drupal::service('ibm_apim.myorgsvc');
+            $whitelist = [Member::class, ApicUser::class];
+            foreach ($cOrgMembers as $arrayValue) {
+              $orgMember = new Member();
+              $orgMember->createFromArray(unserialize($arrayValue['value'], ['allowed_classes' => $whitelist]));
+              
+              $memberUserUrl = $orgMember->getUserUrl();
+              if ($myorgOwnerUrl !== $memberUserUrl) {
+                $newMember = $orgService->prepareOrgMemberForDisplay($orgMember);
+                $members[$newMember['id']] = $newMember;
+              }
+            }
+          }
         }
       }
     }
@@ -153,6 +174,18 @@ class AnalyticsController extends ControllerBase {
         \Drupal::messenger()->addError(t('Analytics client URL is not set.'));
       }
     }
+
+    // Get configuration settings for consumer org actions
+    $config = \Drupal::config('ibm_apim.settings');
+    $hasSettingsManagePerm = $this->userUtils->checkHasPermission('settings:manage');
+    $allowConsumerorgChangeOwner = (boolean) $config->get('allow_consumerorg_change_owner');
+    $allowConsumerorgRename = (boolean) $config->get('allow_consumerorg_rename');
+    $allowConsumerorgDelete = (boolean) $config->get('allow_consumerorg_delete');
+
+    $canTransferOwner = $hasSettingsManagePerm && $allowConsumerorgChangeOwner;
+    $canRenameOrg = $hasSettingsManagePerm && $allowConsumerorgRename;
+    $canDeleteOrg = $hasSettingsManagePerm && $allowConsumerorgDelete;
+
     ibm_apim_exit_trace(__CLASS__ . '::' . __FUNCTION__, [
       'theme' => $theme,
       'consumerorgId' => $consumerorgId,
@@ -172,6 +205,10 @@ class AnalyticsController extends ControllerBase {
       '#catalogName' => urlencode($catalogName),
       '#porgId' => $pOrgId,
       '#consumerorgTitle' => $consumerorgTitle,
+      '#myorg_members' => $members,
+      '#myorg_can_transfer_owner' => $canTransferOwner,
+      '#myorg_can_rename_org' => $canRenameOrg,
+      '#myorg_can_delete_org' => $canDeleteOrg,
       '#attached' => [
         'library' => $libraries,
         'drupalSettings' => $drupalSettings,

@@ -1,14 +1,26 @@
 <?php
 
+/********************************************************* {COPYRIGHT-TOP} ***
+ * Licensed Materials - Property of IBM
+ * 5725-L30, 5725-Z22
+ *
+ * (C) Copyright IBM Corporation 2018, 2025
+ *
+ * All Rights Reserved.
+ * US Government Users Restricted Rights - Use, duplication or disclosure
+ * restricted by GSA ADP Schedule Contract with IBM Corp.
+********************************************************** {COPYRIGHT-END} **/
+
 namespace Drupal\Tests\ibm_csp_extension\Unit;
 
+use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\csp\Csp;
 use Drupal\csp\Event\PolicyAlterEvent;
+use Drupal\csp\Nonce;
 use Drupal\ibm_csp_extension\EventSubscriber\CspPolicySubscriber;
 use Drupal\ibm_csp_extension\Service\ApiEndpointService;
 use Drupal\Tests\UnitTestCase;
 use Prophecy\PhpUnit\ProphecyTrait;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Unit tests for the CspPolicySubscriber class.
@@ -28,7 +40,21 @@ class CspPolicySubscriberTest extends UnitTestCase {
   protected $apiEndpointService;
 
   /**
-   * The CSP policy subscriber.
+   * The CSP nonce service.
+   *
+   * @var \Drupal\csp\Nonce|\Prophecy\Prophecy\ObjectProphecy
+   */
+  protected $cspNonce;
+
+  /**
+   * The module handler.
+   *
+   * @var \Drupal\Core\Extension\ModuleHandlerInterface|\Prophecy\Prophecy\ObjectProphecy
+   */
+  protected $moduleHandler;
+
+  /**
+   * The CSP policy subscriber under test.
    *
    * @var \Drupal\ibm_csp_extension\EventSubscriber\CspPolicySubscriber
    */
@@ -41,8 +67,13 @@ class CspPolicySubscriberTest extends UnitTestCase {
     parent::setUp();
 
     $this->apiEndpointService = $this->prophesize(ApiEndpointService::class);
+    $this->cspNonce = $this->prophesize(Nonce::class);
+    $this->moduleHandler = $this->prophesize(ModuleHandlerInterface::class);
+
     $this->cspPolicySubscriber = new CspPolicySubscriber(
-      $this->apiEndpointService->reveal()
+      $this->apiEndpointService->reveal(),
+      $this->cspNonce->reveal(),
+      $this->moduleHandler->reveal(),
     );
   }
 
@@ -53,8 +84,8 @@ class CspPolicySubscriberTest extends UnitTestCase {
    */
   public function testGetSubscribedEvents() {
     $events = CspPolicySubscriber::getSubscribedEvents();
-    $this->assertArrayHasKey('csp.policy.alter', $events);
-    $this->assertEquals('onCspPolicyAlter', $events['csp.policy.alter']);
+    $this->assertArrayHasKey('csp.policy_alter', $events);
+    $this->assertEquals(['onCspPolicyAlter'], $events['csp.policy_alter']);
   }
 
   /**
@@ -63,19 +94,16 @@ class CspPolicySubscriberTest extends UnitTestCase {
    * @covers ::onCspPolicyAlter
    */
   public function testOnCspPolicyAlterWithNoConnectSrcNoDefaultSrc() {
-    // Create a mock CSP policy.
     $policy = $this->prophesize(Csp::class);
     $policy->hasDirective('connect-src')->willReturn(FALSE);
     $policy->hasDirective('default-src')->willReturn(FALSE);
-    
-    // No endpoints should be added since neither connect-src nor default-src contain 'self'
+
     $this->apiEndpointService->getCustomEndpoints()->shouldNotBeCalled();
-    
-    // Create a mock event.
+    $this->moduleHandler->moduleExists('ckeditor5')->willReturn(FALSE);
+
     $event = $this->prophesize(PolicyAlterEvent::class);
     $event->getPolicy()->willReturn($policy->reveal());
-    
-    // Call the method.
+
     $this->cspPolicySubscriber->onCspPolicyAlter($event->reveal());
   }
 
@@ -85,29 +113,26 @@ class CspPolicySubscriberTest extends UnitTestCase {
    * @covers ::onCspPolicyAlter
    */
   public function testOnCspPolicyAlterWithNoConnectSrcDefaultSrcWithSelf() {
-    // Create a mock CSP policy.
     $policy = $this->prophesize(Csp::class);
     $policy->hasDirective('connect-src')->willReturn(FALSE);
     $policy->hasDirective('default-src')->willReturn(TRUE);
     $policy->getDirective('default-src')->willReturn(["'self'", 'https://default.example.com']);
     $policy->setDirective('connect-src', ["'self'", 'https://default.example.com'])->shouldBeCalled();
-    
-    // Mock the API endpoint service to return some endpoints.
+
     $this->apiEndpointService->getCustomEndpoints()->willReturn([
       'https://api.example.com',
       'https://api2.example.com',
     ]);
-    
-    // Mock the policy to append each endpoint.
+
     $policy->getDirective('connect-src')->willReturn(["'self'", 'https://default.example.com']);
     $policy->appendDirective('connect-src', 'https://api.example.com')->shouldBeCalled();
     $policy->appendDirective('connect-src', 'https://api2.example.com')->shouldBeCalled();
-    
-    // Create a mock event.
+
+    $this->moduleHandler->moduleExists('ckeditor5')->willReturn(FALSE);
+
     $event = $this->prophesize(PolicyAlterEvent::class);
     $event->getPolicy()->willReturn($policy->reveal());
-    
-    // Call the method.
+
     $this->cspPolicySubscriber->onCspPolicyAlter($event->reveal());
   }
 
@@ -117,20 +142,17 @@ class CspPolicySubscriberTest extends UnitTestCase {
    * @covers ::onCspPolicyAlter
    */
   public function testOnCspPolicyAlterWithNoConnectSrcDefaultSrcNoSelf() {
-    // Create a mock CSP policy.
     $policy = $this->prophesize(Csp::class);
     $policy->hasDirective('connect-src')->willReturn(FALSE);
     $policy->hasDirective('default-src')->willReturn(TRUE);
     $policy->getDirective('default-src')->willReturn(['https://default.example.com']);
-    
-    // No endpoints should be added since default-src doesn't contain 'self'
+
     $this->apiEndpointService->getCustomEndpoints()->shouldNotBeCalled();
-    
-    // Create a mock event.
+    $this->moduleHandler->moduleExists('ckeditor5')->willReturn(FALSE);
+
     $event = $this->prophesize(PolicyAlterEvent::class);
     $event->getPolicy()->willReturn($policy->reveal());
-    
-    // Call the method.
+
     $this->cspPolicySubscriber->onCspPolicyAlter($event->reveal());
   }
 
@@ -140,19 +162,17 @@ class CspPolicySubscriberTest extends UnitTestCase {
    * @covers ::onCspPolicyAlter
    */
   public function testOnCspPolicyAlterWithConnectSrcNoSelf() {
-    // Create a mock CSP policy.
     $policy = $this->prophesize(Csp::class);
     $policy->hasDirective('connect-src')->willReturn(TRUE);
     $policy->getDirective('connect-src')->willReturn(['https://existing.example.com']);
-    
-    // No endpoints should be added since connect-src doesn't contain 'self'
+    $policy->hasDirective('default-src')->willReturn(FALSE);
+
     $this->apiEndpointService->getCustomEndpoints()->shouldNotBeCalled();
-    
-    // Create a mock event.
+    $this->moduleHandler->moduleExists('ckeditor5')->willReturn(FALSE);
+
     $event = $this->prophesize(PolicyAlterEvent::class);
     $event->getPolicy()->willReturn($policy->reveal());
-    
-    // Call the method.
+
     $this->cspPolicySubscriber->onCspPolicyAlter($event->reveal());
   }
 
@@ -162,25 +182,22 @@ class CspPolicySubscriberTest extends UnitTestCase {
    * @covers ::onCspPolicyAlter
    */
   public function testOnCspPolicyAlterWithConnectSrcWithSelf() {
-    // Create a mock CSP policy.
     $policy = $this->prophesize(Csp::class);
     $policy->hasDirective('connect-src')->willReturn(TRUE);
     $policy->getDirective('connect-src')->willReturn(["'self'", 'https://existing.example.com']);
-    
-    // Mock the API endpoint service to return some endpoints.
+
     $this->apiEndpointService->getCustomEndpoints()->willReturn([
       'https://api.example.com',
     ]);
-    
-    // Mock the policy to append each endpoint.
+
     $policy->getDirective('connect-src')->willReturn(["'self'", 'https://existing.example.com']);
     $policy->appendDirective('connect-src', 'https://api.example.com')->shouldBeCalled();
-    
-    // Create a mock event.
+
+    $this->moduleHandler->moduleExists('ckeditor5')->willReturn(FALSE);
+
     $event = $this->prophesize(PolicyAlterEvent::class);
     $event->getPolicy()->willReturn($policy->reveal());
-    
-    // Call the method.
+
     $this->cspPolicySubscriber->onCspPolicyAlter($event->reveal());
   }
 
@@ -190,49 +207,131 @@ class CspPolicySubscriberTest extends UnitTestCase {
    * @covers ::onCspPolicyAlter
    */
   public function testOnCspPolicyAlterWithNoEndpoints() {
-    // Create a mock CSP policy.
     $policy = $this->prophesize(Csp::class);
     $policy->hasDirective('connect-src')->willReturn(TRUE);
     $policy->getDirective('connect-src')->willReturn(["'self'"]);
-    
-    // Mock the API endpoint service to return no endpoints.
+
     $this->apiEndpointService->getCustomEndpoints()->willReturn([]);
-    
-    // Create a mock event.
+    $this->moduleHandler->moduleExists('ckeditor5')->willReturn(FALSE);
+
     $event = $this->prophesize(PolicyAlterEvent::class);
     $event->getPolicy()->willReturn($policy->reveal());
-    
-    // Call the method.
+
     $this->cspPolicySubscriber->onCspPolicyAlter($event->reveal());
   }
-  
+
   /**
    * Tests the onCspPolicyAlter method with duplicate endpoints.
    *
    * @covers ::onCspPolicyAlter
    */
   public function testOnCspPolicyAlterWithDuplicateEndpoints() {
-    // Create a mock CSP policy.
     $policy = $this->prophesize(Csp::class);
     $policy->hasDirective('connect-src')->willReturn(TRUE);
     $policy->getDirective('connect-src')->willReturn(["'self'", 'https://api.example.com']);
-    
-    // Mock the API endpoint service to return endpoints including a duplicate.
+
     $this->apiEndpointService->getCustomEndpoints()->willReturn([
-      'https://api.example.com', // This is already in the policy
+      'https://api.example.com',
       'https://api2.example.com',
     ]);
-    
-    // Only the new endpoint should be added, not the duplicate
+
     $policy->getDirective('connect-src')->willReturn(["'self'", 'https://api.example.com']);
     $policy->appendDirective('connect-src', 'https://api.example.com')->shouldNotBeCalled();
     $policy->appendDirective('connect-src', 'https://api2.example.com')->shouldBeCalled();
-    
-    // Create a mock event.
+
+    $this->moduleHandler->moduleExists('ckeditor5')->willReturn(FALSE);
+
     $event = $this->prophesize(PolicyAlterEvent::class);
     $event->getPolicy()->willReturn($policy->reveal());
-    
-    // Call the method.
+
     $this->cspPolicySubscriber->onCspPolicyAlter($event->reveal());
   }
+
+  /**
+   * Tests that the nonce is added to style-src when ckeditor5 is active and style-src is set.
+   *
+   * @covers ::onCspPolicyAlter
+   */
+  public function testStyleSrcNonceAddedWhenCkeditor5ActiveAndStyleSrcSet(): void {
+    $policy = $this->prophesize(Csp::class);
+    $policy->hasDirective('connect-src')->willReturn(FALSE);
+    $policy->hasDirective('default-src')->willReturn(FALSE);
+
+    $this->apiEndpointService->getCustomEndpoints()->shouldNotBeCalled();
+    $this->moduleHandler->moduleExists('ckeditor5')->willReturn(TRUE);
+    $this->cspNonce->getSource()->willReturn("'nonce-abc123'");
+    $policy->fallbackAwareAppendIfEnabled('style-src-elem', "'nonce-abc123'")->shouldBeCalled();
+
+    $event = $this->prophesize(PolicyAlterEvent::class);
+    $event->getPolicy()->willReturn($policy->reveal());
+
+    $this->cspPolicySubscriber->onCspPolicyAlter($event->reveal());
+  }
+
+  /**
+   * Tests that the nonce is added to style-src-elem when ckeditor5 is active and default-src is set.
+   *
+   * @covers ::onCspPolicyAlter
+   */
+  public function testStyleSrcNonceAddedWhenCkeditor5ActiveAndDefaultSrcSet(): void {
+    $policy = $this->prophesize(Csp::class);
+    $policy->hasDirective('connect-src')->willReturn(FALSE);
+    $policy->hasDirective('default-src')->willReturn(TRUE);
+    $policy->getDirective('default-src')->willReturn(["'self'"]);
+    $policy->setDirective('connect-src', ["'self'"])->shouldBeCalled();
+    $policy->getDirective('connect-src')->willReturn(["'self'"]);
+
+    $this->apiEndpointService->getCustomEndpoints()->willReturn([]);
+    $this->moduleHandler->moduleExists('ckeditor5')->willReturn(TRUE);
+    $this->cspNonce->getSource()->willReturn("'nonce-xyz789'");
+    $policy->fallbackAwareAppendIfEnabled('style-src-elem', "'nonce-xyz789'")->shouldBeCalled();
+
+    $event = $this->prophesize(PolicyAlterEvent::class);
+    $event->getPolicy()->willReturn($policy->reveal());
+
+    $this->cspPolicySubscriber->onCspPolicyAlter($event->reveal());
+  }
+
+  /**
+   * Tests that the nonce is NOT added when ckeditor5 is not active.
+   *
+   * @covers ::onCspPolicyAlter
+   */
+  public function testStyleSrcNonceNotAddedWhenCkeditor5Inactive(): void {
+    $policy = $this->prophesize(Csp::class);
+    $policy->hasDirective('connect-src')->willReturn(FALSE);
+    $policy->hasDirective('default-src')->willReturn(FALSE);
+
+    $this->apiEndpointService->getCustomEndpoints()->shouldNotBeCalled();
+    $this->moduleHandler->moduleExists('ckeditor5')->willReturn(FALSE);
+    $this->cspNonce->getSource()->shouldNotBeCalled();
+    $policy->fallbackAwareAppendIfEnabled(\Prophecy\Argument::cetera())->shouldNotBeCalled();
+
+    $event = $this->prophesize(PolicyAlterEvent::class);
+    $event->getPolicy()->willReturn($policy->reveal());
+
+    $this->cspPolicySubscriber->onCspPolicyAlter($event->reveal());
+  }
+
+  /**
+   * Tests that fallbackAwareAppendIfEnabled is called for style-src-elem when ckeditor5 is active.
+   *
+   * @covers ::onCspPolicyAlter
+   */
+  public function testStyleSrcNonceCalledWhenCkeditor5Active(): void {
+    $policy = $this->prophesize(Csp::class);
+    $policy->hasDirective('connect-src')->willReturn(FALSE);
+    $policy->hasDirective('default-src')->willReturn(FALSE);
+
+    $this->apiEndpointService->getCustomEndpoints()->shouldNotBeCalled();
+    $this->moduleHandler->moduleExists('ckeditor5')->willReturn(TRUE);
+    $this->cspNonce->getSource()->willReturn("'nonce-test'");
+    $policy->fallbackAwareAppendIfEnabled('style-src-elem', "'nonce-test'")->shouldBeCalled();
+
+    $event = $this->prophesize(PolicyAlterEvent::class);
+    $event->getPolicy()->willReturn($policy->reveal());
+
+    $this->cspPolicySubscriber->onCspPolicyAlter($event->reveal());
+  }
+
 }

@@ -409,6 +409,80 @@ function consumerorg_update_10002() {
  * @throws \Drupal\Core\Entity\EntityStorageException
  */
 function consumerorg_update_10003() {
+  // Check view displays
+  $viewDisplayFiles = ['node.consumerorg.default', 'node.consumerorg.teaser'];
+  $formatter_manager = \Drupal::service('plugin.manager.field.formatter');
+  
+  foreach ($viewDisplayFiles as $file) {
+    $viewDisplay = \Drupal::entityTypeManager()->getStorage('entity_view_display')->load($file);
+  
+    if ($viewDisplay !== NULL) {
+      $changed = FALSE;
+      $content = $viewDisplay->get('content');
+      
+      foreach ($content as $fieldName => $component) {
+        if (is_array($component) && isset($component['type'])) {
+          $type = $component['type'];
+          $definitions = $formatter_manager->getDefinitions();
+          if (!isset($definitions[$type])) {
+            \Drupal::logger('consumerorg')->notice('View Display - Field: @field, Type: @type, Not Supported in File: @file', [
+              '@field' => $fieldName,
+              '@type' => $type,
+              '@file' => $file,
+            ]);
+  
+            // Reset to Basic String
+            $content[$fieldName]['type'] = 'basic_string';
+            $changed = TRUE;
+          }
+        }
+      }
+      
+      if ($changed) {
+        $viewDisplay->set('content', $content);
+        $viewDisplay->save();
+        \Drupal::logger('product')->notice('Saved view display changes for @file', ['@file' => $file]);
+      }
+    }
+  }
+
+  // Check form displays
+  $formDisplayFiles = ['node.consumerorg.default'];
+  $widget_manager = \Drupal::service('plugin.manager.field.widget');
+  
+  foreach ($formDisplayFiles as $file) {
+    $formDisplay = \Drupal::entityTypeManager()->getStorage('entity_form_display')->load($file);
+  
+    if ($formDisplay !== NULL) {
+      $changed = FALSE;
+      $content = $formDisplay->get('content');
+      
+      foreach ($content as $fieldName => $component) {
+        if (is_array($component) && isset($component['type'])) {
+          $type = $component['type'];
+          $definitions = $widget_manager->getDefinitions();
+          if (!isset($definitions[$type])) {
+            \Drupal::logger('consumerorg')->notice('Form Display - Field: @field, Type: @type, Not Supported in File: @file', [
+              '@field' => $fieldName,
+              '@type' => $type,
+              '@file' => $file,
+            ]);
+  
+            // Reset to string_textfield for form widgets
+            $content[$fieldName]['type'] = 'string_textfield';
+            $changed = TRUE;
+          }
+        }
+      }
+      
+      if ($changed) {
+        $formDisplay->set('content', $content);
+        $formDisplay->save();
+        \Drupal::logger('consumerorg')->notice('Saved form display changes for @file', ['@file' => $file]);
+      }
+    }
+  }
+  
   // Check if field storage already exists
   $fieldStorage = FieldStorageConfig::loadByName('node', 'apic_metadata');
   if (!$fieldStorage) {
