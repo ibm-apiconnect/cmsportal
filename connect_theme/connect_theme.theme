@@ -219,6 +219,21 @@ function connect_theme_preprocess_comment(&$variables) {
 // */
 
 /**
+ * Implements hook_preprocess_links__language_block().
+ *
+ * Injects current_langcode into the links template so the correct
+ * <option> is marked selected server-side.
+ */
+function connect_theme_preprocess_links__language_block(&$variables) {
+  $request = \Drupal::request();
+  $lang_from_query   = $request->query->get('language');
+  $lang_from_session = $request->getSession()->get('language_interface') ?? NULL;
+  $lang_from_current = \Drupal::languageManager()->getCurrentLanguage()->getId();
+  $lang_default      = \Drupal::languageManager()->getDefaultLanguage()->getId();
+  $variables['current_langcode'] = $lang_from_query ?: ($lang_from_session ?: ($lang_from_current ?: $lang_default));
+}
+
+/**
  * Preprocess variables for block templates.
  */
 function connect_theme_preprocess_block(&$variables) {
@@ -228,6 +243,11 @@ function connect_theme_preprocess_block(&$variables) {
 
   if ($variables['plugin_id'] === 'system_menu_block:account') {
     $variables['#cache']['max-age'] = 0;
+  }
+  // Hide the label for the language switcher block and vary cache per language.
+  if ($variables['base_plugin_id'] === 'language_block') {
+    $variables['label'] = '';
+    $variables['#cache']['contexts'][] = 'languages:language_interface';
   }
   if ($variables['plugin_id'] === 'contact_block') {
     $variables['attributes']['aria-label'] = t('Contact form');

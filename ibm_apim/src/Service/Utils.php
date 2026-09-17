@@ -181,7 +181,8 @@ class Utils {
 
       $dumpHashedJson = \Drupal::state()->get('ibm_apim.dump_hashed_json');
       if ($dumpHashedJson === 'true' && $label) {
-        file_put_contents('/tmp/' . $label, $data);
+        $safe_label = basename($label);
+        file_put_contents('/tmp/' . $safe_label, $data);
       }
     }
 

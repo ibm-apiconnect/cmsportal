@@ -220,16 +220,20 @@ class SocialBlock extends BlockBase {
    * This function runs when the config / edit form is submitted
    */
   public function blockSubmit($form, FormStateInterface $form_state): void {
-    $uuid_service = new PhpUuid();
     parent::blockSubmit($form, $form_state);
+    if (!isset($this->configuration['uuid']) || empty($this->configuration['uuid'])) {
+      $uuid_service = new PhpUuid();
+      $uuid = $uuid_service->generate();
+      $this->configuration['uuid'] = $uuid;
+    } else {
+      $uuid = $this->configuration['uuid'];
+    }
     $this->configuration['numberOfTiles'] = $form_state->getValue('numberOfTiles');
     $this->configuration['forumsList'] = $form_state->getValue('forumsList');
     $this->configuration['twitterSearchBy'] = $form_state->getValue(['twitterConfig', 'twitterSearchBy']);
     $this->configuration['twitterSearchParameter'] = $form_state->getValue(['twitterConfig', 'twitterSearchParameter']);
     $this->configuration['blueskySearchParameter'] = $form_state->getValue(['twitterConfig', 'blueskySearchParameter']);
     $this->configuration['twitterTweetTypes'] = $form_state->getValue(['twitterConfig', 'twitterTweetTypes']);
-    $uuid = $uuid_service->generate();
-    $this->configuration['uuid'] = $uuid;
     $configInstances = \Drupal::state()->get('socialblock.config');
     if ($configInstances === NULL) {
       $configInstances = [];

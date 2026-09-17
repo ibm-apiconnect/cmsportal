@@ -95,7 +95,7 @@ class ApicUserDeleteService implements ApicUserDeleteInterface {
   /**
    * @inheritDoc
    */
-  public function deleteLocalAccount(ApicUser $user = NULL): bool {
+  public function deleteLocalAccount(?ApicUser $user = NULL): bool {
     if (\function_exists('ibm_apim_entry_trace')) {
       ibm_apim_entry_trace(__CLASS__ . '::' . __FUNCTION__, NULL);
     }

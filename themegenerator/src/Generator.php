@@ -32,6 +32,9 @@ class Generator {
 
     if ($name !== NULL) {
       $name = trim($name);
+      if (!preg_match('/^[a-zA-Z0-9_-]+$/', $name)) {
+        throw new \InvalidArgumentException('Theme name contains invalid characters. Only alphanumeric characters, hyphens, and underscores are allowed.');
+      }
       $tempDir = \Drupal::service('file_system')->getTempDirectory();
       if ($type !== 'scss') {
         $type = 'css';
@@ -95,7 +98,16 @@ class Generator {
       }
 
       # Copy Error Images files needed for CSS
-      self::recursiveCopy(DRUPAL_ROOT . "/" . \Drupal::service('extension.list.theme')->getPath('connect_theme') . '/images/ibmcarbon/svg/ErrorPages', $targetDir . '/images/ibmcarbon/svg/ErrorPages', $name);
+      $connectThemePath = DRUPAL_ROOT . "/" . \Drupal::service('extension.list.theme')->getPath('connect_theme');
+      self::recursiveCopy($connectThemePath . '/images/ibmcarbon/svg/ErrorPages', $targetDir . '/images/ibmcarbon/svg/ErrorPages', $name);
+
+      $ibmCarbonSvgTargetDir = $targetDir . '/images/ibmcarbon/svg';
+      if (!is_dir($ibmCarbonSvgTargetDir) && !mkdir($concurrentDirectory = $ibmCarbonSvgTargetDir, 0755, TRUE) && !is_dir($concurrentDirectory)) {
+        throw new \RuntimeException(sprintf('Directory "%s" was not created', $concurrentDirectory));
+      }
+
+      copy($connectThemePath . '/images/ibmcarbon/svg/view.svg', $ibmCarbonSvgTargetDir . '/view.svg');
+      copy($connectThemePath . '/images/ibmcarbon/svg/view--off.svg', $ibmCarbonSvgTargetDir . '/view--off.svg');
 
       self::editTheme(DRUPAL_ROOT . '/' . $baseDir, $name);
 

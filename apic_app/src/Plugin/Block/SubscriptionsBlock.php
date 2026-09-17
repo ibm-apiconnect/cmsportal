@@ -4,7 +4,7 @@
  * Licensed Materials - Property of IBM
  * 5725-L30, 5725-Z22
  *
- * (C) Copyright IBM Corporation 2018, 2024
+ * (C) Copyright IBM Corporation 2018, 2026
  *
  * All Rights Reserved.
  * US Government Users Restricted Rights - Use, duplication or disclosure
@@ -119,7 +119,12 @@ class SubscriptionsBlock extends BlockBase implements ContainerFactoryPluginInte
     //if you depends on \Drupal::routeMatch()
     //you must set context of this block with 'route' context tag.
     //Every new route this block will rebuild
-    return Cache::mergeContexts(parent::getCacheContexts(), ['route']);
+    return Cache::mergeContexts(parent::getCacheContexts(), [
+      'route',
+      'url.query_args:sort_by',
+      'url.query_args:sort_order',
+      'url.query_args:items_per_page',
+    ]);
   }
 
   /**
@@ -159,12 +164,19 @@ class SubscriptionsBlock extends BlockBase implements ContainerFactoryPluginInte
     $view = Views::getView('application_subscriptions');
     $view->setDisplay('block_1');
     $view->setArguments([$app_url]);
+    $request = \Drupal::request();
+    $exposed_input = $request->query->all() + $request->request->all();
+    if (!empty($exposed_input)) {
+      $view->setExposedInput($exposed_input);
+    }
     $view->execute();
     $render_array = $view->render();
+    $exposed_form = $view->exposed_widgets ?? [];
 
     if (empty($view->result)) {
       return [
         '#theme' => 'app_subscriptions',
+        '#exposed_form' => $exposed_form,
         '#userHasAppManage' => false,
         '#userHasSubView' => false,
         '#userHasSubManage' => false,
@@ -176,7 +188,12 @@ class SubscriptionsBlock extends BlockBase implements ContainerFactoryPluginInte
         ],
         '#cache' => [
           'tags' => ['node:' . $node->id(), 'apic_app_application_subs_list'],
-          'contexts' => ['route'],
+          'contexts' => [
+            'route',
+            'url.query_args:sort_by',
+            'url.query_args:sort_order',
+            'url.query_args:items_per_page',
+          ],
           'max-age' => -1,
         ],
       ];

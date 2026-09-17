@@ -54,8 +54,8 @@ class ApicUserProfileForm extends ProfileForm {
                               ApicAccountInterface $account_service,
                               UserRegistryServiceInterface $registry_service,
                               State $state,
-                              EntityTypeBundleInfoInterface $entity_type_bundle_info = NULL,
-                              TimeInterface $time = NULL) {
+                              ?EntityTypeBundleInfoInterface $entity_type_bundle_info = NULL,
+                              ?TimeInterface $time = NULL) {
     $this->accountService = $account_service;
     $this->state = $state;
     $this->registryService = $registry_service;

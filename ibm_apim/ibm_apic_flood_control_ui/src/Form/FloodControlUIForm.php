@@ -37,6 +37,7 @@ class FloodControlUIForm extends ConfigFormBase {
     $form = parent::buildForm($form, $form_state);
     $flood_config = $this->config('user.flood');
     $contact_config = $this->config('contact.settings');
+    $ibm_apim_config = $this->config('ibm_apim.settings');
 
     if ((bool) \Drupal::state()->get('ibm_apim.ip_ban_enabled', TRUE)) {
       $form['intro'] = [
@@ -102,6 +103,26 @@ class FloodControlUIForm extends ConfigFormBase {
       '#min' => 0,
     ];
 
+    $form['organization_invitations'] = [
+      '#type' => 'fieldset',
+      '#title' => t('Organization Invitations'),
+      '#access' => \Drupal::currentUser()->hasPermission('administer users'),
+    ];
+    $form['organization_invitations']['invitation_resend_limit'] = [
+      '#type' => 'number',
+      '#title' => t('Invitation resend limit'),
+      '#default_value' => $ibm_apim_config->get('invitation_resend_limit') ?? 10,
+      '#min' => 0,
+      '#description' => t('Maximum number of times a single organization invitation can be resent within the configured window. Set to 0 to disable the resend limit.'),
+    ];
+    $form['organization_invitations']['invitation_resend_window'] = [
+      '#type' => 'number',
+      '#title' => t('Invitation resend window in seconds'),
+      '#default_value' => $ibm_apim_config->get('invitation_resend_window') ?? 3600,
+      '#min' => 0,
+      '#description' => t('Time window used when counting invitation resend attempts.'),
+    ];
+
     return $form;
 
   }
@@ -123,6 +144,10 @@ class FloodControlUIForm extends ConfigFormBase {
     $this->config('contact.settings')
       ->set('flood.limit', $form_state->getValue('limit'))
       ->set('flood.interval', $form_state->getValue('interval'))
+      ->save();
+    $this->config('ibm_apim.settings')
+      ->set('invitation_resend_limit', $form_state->getValue('invitation_resend_limit'))
+      ->set('invitation_resend_window', $form_state->getValue('invitation_resend_window'))
       ->save();
   }
 

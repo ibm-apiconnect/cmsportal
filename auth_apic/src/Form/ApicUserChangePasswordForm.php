@@ -133,9 +133,8 @@ class ApicUserChangePasswordForm extends ChangePasswordForm {
    *
    * @return array
    */
-  public function buildForm(array $form, FormStateInterface $form_state, UserInterface $user = NULL): array {
+  public function buildForm(array $form, FormStateInterface $form_state, ?UserInterface $user = NULL): array {
     ibm_apim_entry_trace(__CLASS__ . '::' . __FUNCTION__, NULL);
-
     $this->userProfile = $account = $user;
     $user = $this->account;
 

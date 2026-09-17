@@ -88,9 +88,21 @@
         var _calc = function (text) {
             $ul.prepend('<li><a>' + text + '</a></li>');
 
-            /* var availableWidth = $ul.parent().width(), */
-            var availableWidth = $('div.navbar-header').width() - $('a.logo.navbar-btn').width(),
-                liWidth = 0,
+            var $navbar = $ul.closest('.navbar');
+            var $logo = $('a.logo.navbar-btn:visible');
+            var $rightNav = $('.region-navigation-right:visible, .navbar-right:visible');
+
+            var availableWidth;
+            if ($navbar.length) {
+                var totalWidth = $navbar.width();
+                var logoWidth = $logo.length ? $logo.outerWidth(true) : 0;
+                var rightWidth = $rightNav.length ? $rightNav.outerWidth(true) : 0;
+                availableWidth = totalWidth - logoWidth - rightWidth - 20;
+            } else {
+                availableWidth = $('div.navbar-header').width() - ($logo.length ? $logo.width() : 0) - 10;
+            }
+
+            var liWidth = 0,
                 count = 0;
 
             // #debug
@@ -98,7 +110,7 @@
 
             $ul.children('li').each(function (i, el) {
                 if ( $(this).is(":visible")) {
-                    liWidth += $(this).width()+1;
+                    liWidth += $(this).outerWidth(true);
                 }
                 // #debug
                 if (config.debug) console.info('li width: ' + liWidth);

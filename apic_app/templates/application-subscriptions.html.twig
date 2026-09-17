@@ -21,7 +21,7 @@
           <div class="applicationLogo">
             {% if node.image is defined and node.image|trim is not empty %}
               <div class="apicAppIcon">
-                <img src="{{- node.image -}}" alt=""/>
+                <img src="{{- node.image -}}" alt="{{ node.title }}"/>
               </div>
             {% endif %}</div>
           <h1 class="applicationName">{{- node.title -}}</h1>

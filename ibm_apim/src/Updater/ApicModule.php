@@ -117,7 +117,7 @@ class ApicModule extends Module {
         $regex .= 'function\s+' . $prefix . '_|';
       }
       $regex = rtrim($regex, '|');
-      if (preg_match('/^\s*(' . $regex . ')/m', $data)) {
+      if (preg_match('/\b(' . $regex . ')/', $data)) {
         $rc = FALSE;
       }
     }

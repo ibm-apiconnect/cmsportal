@@ -630,13 +630,40 @@ class ApicUserLoginForm extends UserLoginForm {
         if ($registry !== NULL) {
 
           if ($jwt !== NULL) {
-            $response = $this->invitationService->acceptInvite($jwt, $login_user);
-
-            if (isset($response) && $response->success() === TRUE) {
-              if ($response->getMessage()) {
-                $this->messenger->addStatus($response->getMessage());
+            if (empty($corg)) {
+              $accounts = $this->userStorage->loadByProperties(['name' => $name]);
+              $existingAccount = $accounts ? reset($accounts) : NULL;
+              if ($existingAccount !== NULL && !$existingAccount->get('consumerorg_url')->isEmpty()) {
+                $consumerOrgValues = $existingAccount->get('consumerorg_url')->getValue();
+                $invitedOrg = end($consumerOrgValues);
+                if (!empty($invitedOrg['value'])) {
+                  $login_user->setOrganization($invitedOrg['value']);
+                }
               }
+            }
+
+            $inviteResponse = $this->invitationService->acceptInvite($jwt, $login_user);
+
+            if (isset($inviteResponse) && $inviteResponse->success() === TRUE) {
+              if ($inviteResponse->getMessage()) {
+                $this->messenger->addStatus($inviteResponse->getMessage());
+              }
+
+              $accounts = $this->userStorage->loadByProperties(['name' => $name]);
+              $existingAccount = $accounts ? reset($accounts) : NULL;
+              if ($existingAccount !== NULL && empty($corg) && !$existingAccount->get('consumerorg_url')->isEmpty()) {
+                $consumerOrgValues = $existingAccount->get('consumerorg_url')->getValue();
+                $invitedOrg = end($consumerOrgValues);
+                if (!empty($invitedOrg['value'])) {
+                  $login_user->setOrganization($invitedOrg['value']);
+                }
+              }
+
               $response = $this->loginService->login($login_user);
+            }
+            else {
+              // Invitation acceptance failed
+              $response = $inviteResponse;
             }
           }
           else {
@@ -804,6 +831,9 @@ class ApicUserLoginForm extends UserLoginForm {
         if (isset($destination) && !empty($destination)) {
           if ($destination[0] !== '/' && $destination[0] !== '?' && $destination[0] !== '#') {
             $destination = '/' . $destination;
+          }
+          if (strpos($destination, '//') === 0) {
+            $destination = '/' . ltrim($destination, '/');
           }
           $form_state->setRedirectUrl(Url::fromUserInput($destination));
         }

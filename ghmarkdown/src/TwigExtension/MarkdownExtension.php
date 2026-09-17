@@ -4,7 +4,7 @@
  * Licensed Materials - Property of IBM
  * 5725-L30, 5725-Z22
  *
- * (C) Copyright IBM Corporation 2018, 2024
+ * (C) Copyright IBM Corporation 2018, 2026
  *
  * All Rights Reserved.
  * US Government Users Restricted Rights - Use, duplication or disclosure
@@ -37,7 +37,7 @@ class MarkdownExtension extends AbstractExtension {
    */
   public function getFilters(): array {
     return [
-      new TwigFilter('markdown', array($this, 'filterParseMarkdown'), array('is_safe' => array('html'))),
+      new TwigFilter('markdown', array($this, 'filterParseMarkdown')),
     ];
   }
 
@@ -46,7 +46,7 @@ class MarkdownExtension extends AbstractExtension {
    */
   public static function filterParseMarkdown($txt): string {
     $parser = new GithubMarkdown();
-    return $parser->parse($txt);
+    return (string) $parser->parse($txt);
   }
 
 }

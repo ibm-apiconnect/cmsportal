@@ -178,7 +178,7 @@ class ApicNodeListController extends ControllerBase {
    *
    * @return array|string|null
    */
-  public static function getAPI($input, string $outputType = NULL) {
+  public static function getAPI($input, ?string $outputType = NULL) {
     $node = self::getEntityofType($input, 'api');
     $url = NULL;
     $json = NULL;
@@ -203,7 +203,7 @@ class ApicNodeListController extends ControllerBase {
    *
    * @return array|null
    */
-  public static function getProduct($input, string $outputType = NULL): ?array {
+  public static function getProduct($input, ?string $outputType = NULL): ?array {
     $node = self::getEntityofType($input, 'product');
     $json = NULL;
 

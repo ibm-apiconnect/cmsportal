@@ -17,7 +17,7 @@ footer.footer {
     width: 100%;
   }
 
-  ul {
+  ul:not(.dropdown-menu) {
     display: flex;
     flex-direction: row;
   }
@@ -42,7 +42,7 @@ footer.footer {
   }
 
   @media (max-width: $screen-xs-min) {
-    ul {
+    ul:not(.dropdown-menu) {
       flex-direction: column;
     }
     ul.nav li+li:before {

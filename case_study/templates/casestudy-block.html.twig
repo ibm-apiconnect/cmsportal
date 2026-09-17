@@ -20,7 +20,7 @@
               <div>
                 {% if caseStudy.image %}
                   <div class="apicCaseStudyImage">
-                    <img src="{{- caseStudy.image -}}" loading="lazy" alt={{ caseStudy.title }} class="img-responsive" typeof="foaf:Image" />
+                    <img src="{{- caseStudy.image -}}" loading="lazy" alt="{{ caseStudy.title }}" class="img-responsive" typeof="foaf:Image" />
                   </div>
                 {% else %}
                   <div class="apicCaseStudyImage">
@@ -43,7 +43,6 @@
           </div>
         </div>
         {% endfor %}
-      </div>
     </div>
   </div>
 {% endif %}

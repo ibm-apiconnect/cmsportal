@@ -713,6 +713,20 @@ function apim_profile_main_menu_links() {
   $forum_link->save();
   add_forum_link_translations($forum_link);
 
+  // Create News menu link if ibm_apic_news module is enabled
+  if (\Drupal::moduleHandler()->moduleExists('ibm_apic_news')) {
+    $news_link = MenuLinkContent::create([
+      'title' => t('News'),
+      'description' => t('Portal homepage'),
+      'link' => ['uri' => 'internal:/news'],
+      'menu_name' => $menu_name,
+      'expanded' => TRUE,
+      'weight' => 27,
+    ]);
+    $news_link->save();
+    add_news_link_translations($news_link);
+  }
+
   // update weight of the blogs link
   $menu_link_manager = \Drupal::service('plugin.manager.menu.link');
   $blog_menu_id = 'views_view:views.blog.blog_all';
@@ -721,6 +735,34 @@ function apim_profile_main_menu_links() {
   $menu_link_manager->updateDefinition($blog_menu_id, $blogs_link);
   $cache = \Drupal::cache('menu');
   $cache->deleteAll();
+}
+
+/**
+ * @param $link
+ */
+function add_news_link_translations($link, $overwrite = true): void {
+  $languages = \Drupal::languageManager()->getLanguages();
+
+  foreach ($languages as $language) {
+    $lang = $language->getId();
+    if ($lang === 'en' || ($link->hasTranslation($lang) && !$overwrite)) {
+      continue;
+    }
+    if ($link->hasTranslation($lang)) {
+      $link->removeTranslation($lang);
+    }
+    $translation = [
+      'title' => t('News', [], ['langcode' => $lang]),
+      'description' => t('Portal homepage', [], ['langcode' => $lang]),
+      'link' => ['uri' => 'internal:/news'],
+      'menu_name' => 'main',
+      'expanded' => TRUE,
+      'weight' => 27,
+    ];
+    $link->addTranslation($lang, $translation);
+  }
+
+  $link->save();
 }
 
 /**

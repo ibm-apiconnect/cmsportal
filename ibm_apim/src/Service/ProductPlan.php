@@ -17,6 +17,7 @@ use CommerceGuys\Intl\Currency\CurrencyRepository;
 use CommerceGuys\Intl\Formatter\CurrencyFormatter;
 use CommerceGuys\Intl\NumberFormat\NumberFormatRepository;
 use Drupal\Component\Utility\Html;
+use Drupal\Component\Utility\Xss;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\StringTranslation\TranslationManager;
 
@@ -382,7 +383,7 @@ class ProductPlan {
       }
 
       if (array_key_exists('description', $planArray['data']['x-ibm-languages']) && array_key_exists($lang_code, $planArray['data']['x-ibm-languages']['description'])) {
-        $planArray['data']['description'] = $planArray['data']['x-ibm-languages']['description'][$lang_code];
+        $planArray['data']['description'] = Xss::filter($planArray['data']['x-ibm-languages']['description'][$lang_code]);
       }
     }
 

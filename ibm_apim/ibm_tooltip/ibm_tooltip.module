@@ -10,6 +10,7 @@
   * restricted by GSA ADP Schedule Contract with IBM Corp.
 ********************************************************** {COPYRIGHT-END} **/
 use Drupal\views\ViewExecutable;
+use Drupal\Component\Utility\Xss;
 
 function ibm_tooltip_views_post_execute(ViewExecutable $view) {
   $executable_pages = [
@@ -69,10 +70,10 @@ function parse_api($apiNode) {
   $tooltip[$nodeKey] = [];
   foreach ($apiReqs as $apiReqGroup) {
     foreach ($apiReqGroup as $reqKey => $apiReq) {
-      $api_description = $apiReq['description'] ?? $apiReq['summary'] ?? '';
+      $api_description = Xss::filter($apiReq['description'] ?? $apiReq['summary'] ?? '');
       $api_description = mb_strlen($api_description, 'UTF-8') > 50 ? mb_substr($api_description, 0, 50, 'UTF-8') . '...' : $api_description;
       $tooltip[$nodeKey][] = [
-        'key' => $reqKey,
+        'key' => Xss::filter((string) $reqKey),
         'summary' => $api_description === "" ? [] : [ $api_description ]
       ];
       if (count($tooltip[$nodeKey]) >= 5) {
@@ -112,10 +113,10 @@ function parse_product($productNode) {
   $tooltip[$node_key] = [];
   foreach($api_nodes as $api_node) {
     $api = unserialize($api_node->get('api_swagger')->getValue()[0]['value']);
-    $api_name = $api['info']['title'] ?? '';
-    $api_type = $api['x-ibm-configuration']['type'] ?? '';
-    $api_version = $api['info']['version'] ?? '';
-    $api_description = $api['info']['description'] ?? $api['info']['x-ibm-summary'] ?? '';
+    $api_name = Xss::filter($api['info']['title'] ?? '');
+    $api_type = Xss::filter($api['x-ibm-configuration']['type'] ?? '');
+    $api_version = Xss::filter($api['info']['version'] ?? '');
+    $api_description = Xss::filter($api['info']['description'] ?? $api['info']['x-ibm-summary'] ?? '');
     $api_description = mb_strlen($api_description, 'UTF-8') > 50 ? mb_substr($api_description, 0, 50, 'UTF-8') . '...' : $api_description;
     $tooltip[$node_key][] = [
       'key' => $api_name,
