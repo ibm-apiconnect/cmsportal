@@ -4,10 +4,11 @@
   @include reset;
   display: flex;
   flex-direction: column;
-  width: rem(300px);
-  max-width: rem(300px);
-  min-height: rem(300px);
-  max-height: rem(400px);
+  width: rem(320px);
+  max-width: rem(320px);
+  min-height: rem(320px);
+  max-height: rem(320px);
+  height: rem(320px);
   background-color: $card-bg;
   border: 1px solid $card-border-color;
   margin-bottom: 2px;

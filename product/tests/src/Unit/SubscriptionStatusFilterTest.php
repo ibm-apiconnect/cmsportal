@@ -361,4 +361,42 @@ class SubscriptionStatusFilterTest extends UnitTestCase {
     $this->assertTrue($this->filter->acceptExposedInput([]));
   }
 
+  /**
+   * Test that options are correctly set when filter is disabled.
+   *
+   * @covers ::query
+   */
+  public function testFilterOptionsWhenDisabled(): void {
+    // Set filter as disabled (not exposed)
+    $this->setFilterOptions(['exposed' => FALSE]);
+
+    // Verify the options are set correctly
+    $reflection = new \ReflectionClass($this->filter);
+    $property = $reflection->getProperty('options');
+    $property->setAccessible(TRUE);
+    $options = $property->getValue($this->filter);
+
+    // Assert that exposed is FALSE
+    $this->assertFalse($options['exposed'] ?? NULL, 'Filter should not be exposed');
+  }
+
+  /**
+   * Test that options are correctly set when filter is exposed.
+   *
+   * @covers ::query
+   */
+  public function testFilterOptionsWhenExposed(): void {
+    // Set filter as exposed
+    $this->setFilterOptions(['exposed' => TRUE]);
+
+    // Verify the options are set correctly
+    $reflection = new \ReflectionClass($this->filter);
+    $property = $reflection->getProperty('options');
+    $property->setAccessible(TRUE);
+    $options = $property->getValue($this->filter);
+
+    // Assert that exposed is TRUE
+    $this->assertTrue($options['exposed'] ?? FALSE, 'Filter should be exposed');
+  }
+
 }

@@ -18,6 +18,7 @@ Feature: Product Rendering
 
   Scenario: I can see the Product
     Given I am not logged in
+    Given I have no products or apis
     Given apis:
       | title    | id    | document      |
       | PetStore | 12345 | petstore.json |

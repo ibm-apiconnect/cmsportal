@@ -24,6 +24,7 @@ regions:
 libraries:
   - connect_theme/dropit
   - connect_theme/fix-tabledrag
+  - connect_theme/remove-article-dir
 libraries-extend:
   bootstrap/framework:
     - connect_theme/framework

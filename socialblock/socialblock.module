@@ -426,6 +426,23 @@ function socialblock_sort_by_created($a, $b): int {
  */
 function socialblock_expand_url($url): string {
   $returnValue = NULL;
+  
+
+  $parsed = parse_url($url);
+  if (!isset($parsed['scheme']) || !in_array(strtolower($parsed['scheme']), ['http', 'https'])) {
+    \Drupal::logger('socialblock')->warning('Invalid URL scheme blocked: @url', ['@url' => $url]);
+    return $url;
+  }
+  
+
+  if (isset($parsed['host'])) {
+    $ip = gethostbyname($parsed['host']);
+    if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === FALSE) {
+      \Drupal::logger('socialblock')->warning('Private/reserved IP blocked: @url resolves to @ip', ['@url' => $url, '@ip' => $ip]);
+      return $url;
+    }
+  }
+  
   $ch = curl_init();
   curl_setopt($ch, CURLOPT_URL, $url);
   curl_setopt($ch, CURLOPT_HEADER, TRUE);
@@ -446,12 +463,3 @@ function socialblock_expand_url($url): string {
   return $returnValue;
 }
 
-function socialblock_preprocess_page(&$variables) {
-  $current_user = \Drupal::currentUser();
-  $is_admin = $current_user->hasPermission('administer site configuration');
-
-  $variables['#attached']['library'][] = 'socialblock/socialblock';
-  $variables['#attached']['drupalSettings']['csp_error_handler'] = [
-    'isAdmin' => $is_admin,
-  ];
-}

@@ -5,6 +5,9 @@ services:
   
   ibm_csp_extension.policy_subscriber:
     class: Drupal\ibm_csp_extension\EventSubscriber\CspPolicySubscriber
-    arguments: ['@ibm_csp_extension.api_endpoint_service']
+    arguments:
+      - '@ibm_csp_extension.api_endpoint_service'
+      - '@csp.nonce'
+      - '@module_handler'
     tags:
       - { name: event_subscriber }

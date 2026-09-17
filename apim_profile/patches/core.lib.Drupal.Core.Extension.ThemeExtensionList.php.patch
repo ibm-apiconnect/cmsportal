@@ -1,0 +1,22 @@
+--- core/lib/Drupal/Core/Extension/ThemeExtensionList.php	2026-09-07 15:03:05
++++ core/lib/Drupal/Core/Extension/ThemeExtensionList.php	2026-09-07 13:41:56
+@@ -296,6 +296,19 @@
+   /**
+    * {@inheritdoc}
+    */
++  protected function getListCacheId() {
++    // Use a versioned cache ID to avoid deserializing stale Extension objects
++    // written by older Drupal versions. When upgrading from Drupal 11.3 to
++    // 11.4, the theme extension list changed from Extension to Theme objects.
++    // Using a new cache key ensures the old serialized Extension objects in
++    // cache_bootstrap are never read by the new ThemeHandler::addTheme(Theme)
++    // which would cause __PHP_Incomplete_Class errors during provision-migrate.
++    return parent::getListCacheId() . '.v2';
++  }
++
++  /**
++   * {@inheritdoc}
++   */
+   protected function subClassExtension(Extension $extension): Theme {
+     return new Theme($this->root, $extension->getPathname(), $extension->info, $extension->getExtensionFilename());
+   }

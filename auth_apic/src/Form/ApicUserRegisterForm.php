@@ -141,8 +141,6 @@ class ApicUserRegisterForm extends RegisterForm {
                               ApicAccountInterface $account_service,
                               UserRegistryServiceInterface $userRegistryService,
                               ApicUserService $userService,
-                              EntityTypeBundleInfoInterface $entity_type_bundle_info = NULL,
-                              TimeInterface $time = NULL,
                               ApimUtils $apim_utils,
                               OidcRegistryServiceInterface $oidc_service,
                               PrivateTempStoreFactory $sessionStoreFactory,
@@ -156,6 +154,8 @@ class ApicUserRegisterForm extends RegisterForm {
                               TokenParserInterface $token_parser,
                               Utils $utils,
                               SiteConfig $site_config,
+                              ?EntityTypeBundleInfoInterface $entity_type_bundle_info = NULL,
+                              ?TimeInterface $time = NULL,
                               ) {
     parent::__construct($entity_repository, $language_manager, $entity_type_bundle_info, $time);
     $this->logger = $logger;
@@ -191,8 +191,6 @@ class ApicUserRegisterForm extends RegisterForm {
       $container->get('ibm_apim.account'),
       $container->get('ibm_apim.user_registry'),
       $container->get('ibm_apim.apicuser'),
-      $container->get('entity_type.bundle.info'),
-      $container->get('datetime.time'),
       $container->get('ibm_apim.apim_utils'),
       $container->get('auth_apic.oidc'),
       $container->get('tempstore.private'),
@@ -206,6 +204,8 @@ class ApicUserRegisterForm extends RegisterForm {
       $container->get('auth_apic.jwtparser'),
       $container->get('ibm_apim.utils'),
       $container->get('ibm_apim.site_config'),
+      $container->get('entity_type.bundle.info'),
+      $container->get('datetime.time'),
     );
   }
 
@@ -271,12 +271,12 @@ class ApicUserRegisterForm extends RegisterForm {
 
       // if we are on the invited user flow, there will be a JWT in the session so grab that
       // we can use this to pre-populate the email field
+      // The token should already be validated and stored in session by the invitation controller
       $jwt = $this->authApicSessionStore->get('invitation_object');
       if ($jwt === NULL) {
         $inviteToken = \Drupal::request()->query->get('token');
         if ($inviteToken !== NULL) {
           $jwt = $this->jwtParser->parse($inviteToken);
-          $this->authApicSessionStore->set('invitation_object', $jwt);
         }
       }
       if ($jwt !== NULL) {
@@ -619,11 +619,13 @@ class ApicUserRegisterForm extends RegisterForm {
         $val = array_shift($val);
       }
       $val = ($val === null) ? '' : $val;
+      if (is_array($val)) {
+        $val = '';
+      }
       if (strlen($val) > 255 || preg_match($pattern, $val)) {
         $form_state->setErrorByName('', t('A problem occurred while attempting to create your account. Inputs cannot exceed max length or include URLs'));
       }
     }
-
 
     if ($registry === NULL) {
       $form_state->setErrorByName('', t('The specified user registry could not be found.'));
@@ -657,16 +659,23 @@ class ApicUserRegisterForm extends RegisterForm {
       $registry = $this->userRegistryService->get($registry_url);
 
       if ($registry !== NULL) {
-        if ($this->validateUniqueUser($form_state, $registry)) {
-          $this->submitToApim($form_state, $registry);
+        $jwt = $this->authApicSessionStore->get('invitation_object');
+        
+        if ($jwt !== NULL && !$this->validateUniqueUser($form_state, $registry)) {
+          // User validation failed for invitation. Stay on the signup form and
+          // show the invited-user guidance without submitting to APIM.
+          $this->messenger->addError(t('Unable to complete registration. If you have an existing account, try logging in instead.'));
+          $form_state->setRebuild();
+          return;
         } else {
-          // Hide whether the username/email is taken
-          $this->messenger->addStatus($this->getSuccessMessage($registry));
-          $form_state->setRedirect('<front>');
+          // APIM will handle duplicate detection and return appropriate response
+          $this->submitToApim($form_state, $registry);
+          // Clear the JWT from the session after submission
+          if ($jwt !== NULL) {
+            $this->authApicSessionStore->delete('invitation_object');
+          }
         }
       }
-      // Clear the JWT from the session as we're done with it now
-      $this->authApicSessionStore->delete('invitation_object');
     }
 
 
@@ -679,29 +688,54 @@ class ApicUserRegisterForm extends RegisterForm {
 
   private function validateUniqueUser(FormStateInterface $form_state, UserRegistry $registry) : bool{
     ibm_apim_entry_trace(__CLASS__ . '::' . __FUNCTION__, NULL);
-    if ($registry !== NULL && $registry->isUserManaged()) {
-      // we need to check for existing usernames and email addresses.
-      $emailAddress = $form_state->getValue('mail');
-      $username = $form_state->getValue('name');
-
+    
+    if ($registry === NULL) {
+      ibm_apim_exit_trace(__CLASS__ . '::' . __FUNCTION__, TRUE);
+      return TRUE;
+    }
+    
+    $emailAddress = $form_state->getValue('mail');
+    $username = $form_state->getValue('name');
+    
+    // Check for banned usernames (applies to all registries)
+    if ($this->isBannedName($username)) {
+      ibm_apim_exit_trace(__CLASS__ . '::' . __FUNCTION__, FALSE);
+      return FALSE;
+    }
+    
+    // Check username uniqueness in registry (applies to all registries)
+    $testUser = new ApicUser();
+    $testUser->setUsername($username);
+    $testUser->setApicUserRegistryUrl($registry->getUrl());
+    $username_in_same_registry = $this->userStorage->load($testUser);
+    
+    if ($username_in_same_registry !== NULL) {
+      $this->logger->warning('registration failed: Username or email already exists for invited signup (username=%name, email=%email)', [
+        '%name' => $username,
+        '%email' => $emailAddress,
+      ]);
+      ibm_apim_exit_trace(__CLASS__ . '::' . __FUNCTION__, FALSE);
+      return FALSE;
+    }
+    
+    // For invited signup, also block reusing the invited email in the same local
+    // validation path so we fail in-place before calling APIM.
+    if ($registry->isUserManaged()) {
       $user_with_same_email = $this->userStorage->loadUserByEmailAddress($emailAddress);
 
-      $testUser = new ApicUser();
-      $testUser->setUsername($username);
-      $testUser->setApicUserRegistryUrl($registry->getUrl());
-      $username_in_same_registry = $this->userStorage->load($testUser);
-
-      if ($this->isBannedName($username) || $user_with_same_email !== NULL || $username_in_same_registry !== NULL) {
-        if ($user_with_same_email !== NULL) {
-          $this->logger->warning('registration failed: Email %email is already in use', ['%email' => $emailAddress]);
-        } else if ($username_in_same_registry !== NULL) {
-          $this->logger->warning('registration failed: Username %name already exists in user registry', ['%name' => $emailAddress]);
+      if ($user_with_same_email !== NULL) {
+        $user_registry_url = $user_with_same_email->get('apic_user_registry_url')->value ?? NULL;
+        if ($user_registry_url === $registry->getUrl()) {
+          $this->logger->warning('registration failed: Username or email already exists for invited signup (username=%name, email=%email)', [
+            '%name' => $username,
+            '%email' => $emailAddress,
+          ]);
+          ibm_apim_exit_trace(__CLASS__ . '::' . __FUNCTION__, FALSE);
+          return FALSE;
         }
-        ibm_apim_exit_trace(__CLASS__ . '::' . __FUNCTION__, FALSE);
-        return FALSE;
       }
-
     }
+
     ibm_apim_exit_trace(__CLASS__ . '::' . __FUNCTION__, TRUE);
     return TRUE;
   }
@@ -750,6 +784,16 @@ class ApicUserRegisterForm extends RegisterForm {
     if ($response === NULL) {
       $form_state->setRedirect('user.register');
     }
+    elseif (!$response->success() && (strpos($response->getMessage(), 'already registered') !== FALSE || strpos($response->getMessage(), 'already exists') !== FALSE)) {
+      // Re-invited user trying to register - use generic message to avoid information disclosure
+      $this->messenger->addError(t('Unable to complete registration. If you have an existing account, try logging in instead.'));
+      $form_state->setRedirect($response->getRedirect());
+    }
+    elseif (!$response->success() && strpos($response->getMessage(), 'error creating your account') !== FALSE) {
+      // Non-user-managed registry auth failed (likely re-invited user) - use generic message
+      $this->messenger->addError(t('Unable to complete registration. If you have an existing account, try logging in instead.'));
+      $form_state->setRedirect('user.login');
+    }
     elseif ($response->success()) {
 
       // we now have an account registered regardless of path taken, so can update with other information we need to store.
@@ -764,7 +808,7 @@ class ApicUserRegisterForm extends RegisterForm {
       $this->messenger->addStatus($this->getSuccessMessage($registry));
       $form_state->setRedirect($response->getRedirect());
     }
-    elseif (strpos($response->getMessage(), 'is already registered.') === false) {
+    elseif ($response->success() && strpos($response->getMessage(), 'is already registered.') === false) {
       $this->messenger->addStatus($this->getSuccessMessage($registry));
       $this->logger->warning($response->getMessage());
       $form_state->setRedirect('<front>');

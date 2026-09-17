@@ -13,8 +13,10 @@
 
 namespace Drupal\ibm_csp_extension\EventSubscriber;
 
+use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\csp\CspEvents;
 use Drupal\csp\Event\PolicyAlterEvent;
+use Drupal\csp\Nonce;
 use Drupal\ibm_csp_extension\Service\ApiEndpointService;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
@@ -31,13 +33,37 @@ class CspPolicySubscriber implements EventSubscriberInterface {
   protected $apiEndpointService;
 
   /**
+   * The CSP nonce service.
+   *
+   * @var \Drupal\csp\Nonce
+   */
+  protected $cspNonce;
+
+  /**
+   * The module handler.
+   *
+   * @var \Drupal\Core\Extension\ModuleHandlerInterface
+   */
+  protected $moduleHandler;
+
+  /**
    * Constructs a new CspPolicySubscriber object.
    *
    * @param \Drupal\ibm_csp_extension\Service\ApiEndpointService $api_endpoint_service
    *   The API endpoint service.
+   * @param \Drupal\csp\Nonce $csp_nonce
+   *   The CSP nonce service.
+   * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
+   *   The module handler.
    */
-  public function __construct(ApiEndpointService $api_endpoint_service) {
+  public function __construct(
+    ApiEndpointService $api_endpoint_service,
+    Nonce $csp_nonce,
+    ModuleHandlerInterface $module_handler,
+  ) {
     $this->apiEndpointService = $api_endpoint_service;
+    $this->cspNonce = $csp_nonce;
+    $this->moduleHandler = $module_handler;
   }
 
   /**
@@ -50,7 +76,7 @@ class CspPolicySubscriber implements EventSubscriberInterface {
   }
 
   /**
-   * Alters CSP policies to add custom endpoints.
+   * Alters CSP policies to add custom endpoints and CKEditor5 style nonce.
    *
    * @param \Drupal\csp\Event\PolicyAlterEvent $event
    *   The policy alter event.
@@ -58,6 +84,7 @@ class CspPolicySubscriber implements EventSubscriberInterface {
   public function onCspPolicyAlter(PolicyAlterEvent $event) {
     $policy = $event->getPolicy();
 
+    // --- connect-src: whitelist API endpoints ---
     $shouldWhitelist = FALSE;
 
     if ($policy->hasDirective('connect-src')) {
@@ -69,14 +96,12 @@ class CspPolicySubscriber implements EventSubscriberInterface {
     elseif ($policy->hasDirective('default-src')) {
       $defaultSrcValues = $policy->getDirective('default-src');
       if (in_array("'self'", $defaultSrcValues)) {
-        // Create connect-src with the same values as default-src
+        // Create connect-src with the same values as default-src.
         $policy->setDirective('connect-src', $defaultSrcValues);
-        \Drupal::logger('ibm_csp_extension')->info('Copied default-src values to connect-src directive');
         $shouldWhitelist = TRUE;
       }
     }
-    
-    // Only whitelist API endpoints if connect-src or default-src contains 'self'
+
     if ($shouldWhitelist) {
       $endpoints = $this->apiEndpointService->getCustomEndpoints();
 
@@ -87,12 +112,13 @@ class CspPolicySubscriber implements EventSubscriberInterface {
             $policy->appendDirective('connect-src', $endpoint);
           }
         }
-
-        \Drupal::logger('ibm_csp_extension')->info('Added external endpoints to CSP connect-src directive');
       }
     }
-    else {
-      \Drupal::logger('ibm_csp_extension')->info('Not whitelisting API endpoints because connect-src or default-src does not contain \'self\'');
+
+    // --- style-src-elem: add nonce for CKEditor5 ---
+    if ($this->moduleHandler->moduleExists('ckeditor5')) {
+      $policy->fallbackAwareAppendIfEnabled('style-src-elem', $this->cspNonce->getSource());
     }
   }
+
 }

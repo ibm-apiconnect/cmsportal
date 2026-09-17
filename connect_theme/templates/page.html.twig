@@ -155,7 +155,7 @@
 
         {# Content #}
         {% block content %}
-          <a id="main-content"></a>
+          <a id="main-content" tabindex="-1"></a>
           {% if path('<current>') == path('system.401') %}
             {% include 'page--system--401--content.html.twig' %}
           {% elseif path('<current>') == path('system.403') %}

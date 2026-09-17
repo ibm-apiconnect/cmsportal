@@ -2,7 +2,6 @@ langcode: en
 status: true
 dependencies:
   config:
-    - block.block.noproductsblock
     - core.entity_view_mode.node.card
     - node.type.product
     - taxonomy.vocabulary.tags

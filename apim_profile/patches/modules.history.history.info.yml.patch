@@ -1,0 +1,11 @@
+--- modules/history/history.info.yml	2026-01-23 15:27:42
++++ modules/history/history.info.yml	2026-06-11 10:24:24
+@@ -1,7 +1,7 @@
+ name: History
+ type: module
+ description: 'Records which content users have viewed and marks it as new or updated.'
+-package: Core
++package: Other
+ core_version_requirement: '>11.3'
+ dependencies:
+   - drupal:node

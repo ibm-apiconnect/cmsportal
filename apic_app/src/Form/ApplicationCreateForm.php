@@ -128,6 +128,10 @@ class ApplicationCreateForm extends FormBase {
     if (is_array($name) && isset($name[0]['value'])) {
       $name = $name[0]['value'];
     }
+    // Ensure $name is a string for validation
+    if (is_array($name)) {
+      $name = '';
+    }
     if (!isset($name) || empty($name)) {
       $form_state->setErrorByName('Name', $this->t('Application name is a required field.'));
     }

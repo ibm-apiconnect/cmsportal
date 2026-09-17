@@ -1,0 +1,11 @@
+--- core/modules/history/history.info.yml	2026-05-20 16:34:10
++++ core/modules/history/history.info.yml	2026-06-09 10:02:47
+@@ -3,7 +3,7 @@
+ description: 'Records which content users have viewed and marks it as new or updated.'
+ lifecycle: deprecated
+ lifecycle_link: https://www.drupal.org/node/3223395#s-history
+-package: Core
++package: Other
+ version: VERSION
+ dependencies:
+   - drupal:node

@@ -357,7 +357,7 @@ class InviteUserForm extends FormBase {
         $this->messenger->addMessage(t('Invitation sent successfully.'));
       }
       else {
-        $this->messenger->addError(t('Error sending invitation. Contact the system administrator.'));
+        $this->messenger->addError($response->getMessage() ?? t('Error sending invitation. Contact the system administrator.'));
       }
     }
     else {

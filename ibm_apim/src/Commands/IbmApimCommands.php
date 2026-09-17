@@ -570,7 +570,7 @@ class IbmApimCommands extends DrushCommands {
 
       $chunksLeft = true;
       while ($chunksLeft) {
-        $cmd = sprintf('drush @%s contrefresh --uuid=%s --lastTime=%f --chunkSize=%d --index=%d --role=child --alias=%s --startTime=%d --uStartTime=%f', $alias, $UUID, $lastTime, $chunkSize, $fileIndex, $alias, $startTime, $uStartTime);
+        $cmd = sprintf('drush @%s contrefresh --uuid=%s --lastTime=%f --chunkSize=%d --index=%d --role=child --alias=%s --startTime=%d --uStartTime=%f', escapeshellarg($alias), escapeshellarg($UUID), $lastTime, $chunkSize, $fileIndex, escapeshellarg($alias), $startTime, $uStartTime);
         $result_code = 0;
         system($cmd, $result_code);
         if ($result_code !== 0) {
@@ -1526,7 +1526,7 @@ class IbmApimCommands extends DrushCommands {
 
     if (!is_dir($existing_drupal_po_dir)) {
       \Drupal::logger('ibm_apim')->error("Existing .po directory does not exist: @existing_drupal_po_dir", ['@existing_drupal_po_dir' => $existing_drupal_po_dir]);
-      return;
+      // return;
     }
 
     if (!isset($platform_dir) || $platform_dir === '') {

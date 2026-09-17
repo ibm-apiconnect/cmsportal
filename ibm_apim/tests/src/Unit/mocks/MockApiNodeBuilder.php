@@ -14,6 +14,22 @@ namespace Drupal\Tests\ibm_apim\Unit\mocks;
 
 class MockApiNodeBuilder extends AbstractMockNodeBuilder {
 
+  public function __construct($phpUnitScope) {
+    $createMocks = function() {
+      $nodeMock = $this->getMockBuilder('\Drupal\node\Entity\Node')
+        ->disableOriginalConstructor()
+        ->getMock();
+      $fieldBuilderMock = $this->getMockBuilder('\Drupal\Core\Field\FieldItemList')
+        ->disableOriginalConstructor();
+      return [$nodeMock, $fieldBuilderMock];
+    };
+
+    $boundCallback = $createMocks->bindTo($phpUnitScope, $phpUnitScope);
+    list($nodeMock, $fieldBuilderMock) = $boundCallback();
+
+    parent::__construct($phpUnitScope, $nodeMock, $fieldBuilderMock);
+  }
+
   public function setDocument($apiDocument) {
     $apiName = $apiDocument['info']['title'];
     $protocol = 'protocol';

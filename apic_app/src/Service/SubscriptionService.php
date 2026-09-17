@@ -22,6 +22,7 @@ use Drupal\ibm_apim\Service\ApimUtils;
 use Drupal\ibm_apim\Service\UserUtils;
 use Drupal\ibm_apim\Service\Utils;
 use Drupal\ibm_event_log\ApicType\ApicEvent;
+use Drupal\node\Entity\Node;
 use Drupal\user\Entity\User;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Throwable;
@@ -57,14 +58,17 @@ class SubscriptionService {
    *
    * @param \Drupal\ibm_apim\Service\UserUtils $userUtils
    * @param \Drupal\ibm_apim\Service\ApimUtils $apimUtils
+   * @param \Drupal\Core\Extension\ModuleHandlerInterface $moduleHandler
+   * @param \Drupal\ibm_apim\Service\Utils $utils
    */
   public function __construct(UserUtils $userUtils,
                               ApimUtils $apimUtils,
-                              ModuleHandlerInterface $moduleHandler) {
+                              ModuleHandlerInterface $moduleHandler,
+                              Utils $utils) {
     $this->userUtils = $userUtils;
     $this->apimUtils = $apimUtils;
     $this->moduleHandler = $moduleHandler;
-    $this->utils = \Drupal::service('ibm_apim.utils');
+    $this->utils = $utils;
   }
 
   /**
@@ -115,6 +119,12 @@ class SubscriptionService {
       'product_url' => $product,
       'consumerorg_url' => $consumerOrgUrl
     ];
+
+    $titleData = $this->resolveSubscriptionTitles($product, $plan);
+    $fields['plan_title'] = $titleData['plan_title'];
+    $fields['product_title'] = $titleData['product_title'];
+    $fields['plan_title_missing'] = $titleData['plan_title_missing'];
+    $fields['product_title_missing'] = $titleData['product_title_missing'];
 
     if (is_string($created_at)) {
       // store as epoch, incoming format will be like 2021-02-26T12:18:59.000Z
@@ -167,6 +177,72 @@ class SubscriptionService {
 
     ibm_apim_exit_trace(__CLASS__ . '::' . __FUNCTION__, $created);
     return $returnValue;
+  }
+
+  /**
+   * Resolve product and plan display titles for a subscription.
+   *
+   * Missing titles are returned as NULL with a missing flag set to 1.
+   *
+   * @param string $productUrl
+   * @param string $plan
+   *
+   * @return array
+   *   Keys: product_title, plan_title, product_title_missing, plan_title_missing.
+   */
+  private function resolveSubscriptionTitles(string $productUrl, string $plan): array {
+    $result = [
+      'product_title' => NULL,
+      'plan_title' => NULL,
+      'product_title_missing' => 1,
+      'plan_title_missing' => 1,
+    ];
+
+    if ($productUrl === '') {
+      return $result;
+    }
+
+    static $productCache = [];
+    if (!isset($productCache[$productUrl])) {
+      $productCache[$productUrl] = [
+        'product_title' => NULL,
+        'plan_titles' => [],
+      ];
+
+      $query = \Drupal::entityQuery('node');
+      $query->condition('type', 'product');
+      $query->condition('apic_url.value', $productUrl);
+      $query->accessCheck(FALSE);
+      $nids = $query->execute();
+
+      if (!empty($nids)) {
+        $nid = array_shift($nids);
+        $product = Node::load($nid);
+        if ($product !== NULL) {
+          $productCache[$productUrl]['product_title'] = $product->getTitle();
+          if ($product->hasField('product_plans')) {
+            foreach ($product->product_plans->getValue() as $arrayValue) {
+              $planData = unserialize($arrayValue['value'], ['allowed_classes' => FALSE]);
+              if (is_array($planData) && isset($planData['name']) && isset($planData['title'])) {
+                $productCache[$productUrl]['plan_titles'][$planData['name']] = $planData['title'];
+              }
+            }
+          }
+        }
+      }
+    }
+
+    $cached = $productCache[$productUrl];
+    if (!empty($cached['product_title'])) {
+      $result['product_title'] = $cached['product_title'];
+      $result['product_title_missing'] = 0;
+    }
+    if ($plan !== '' && isset($cached['plan_titles'][$plan]) && $cached['plan_titles'][$plan] !== '') {
+      $result['plan_title'] = $cached['plan_titles'][$plan];
+      $result['plan_title_missing'] = 0;
+    }
+
+    return $result;
   }
 
   /**

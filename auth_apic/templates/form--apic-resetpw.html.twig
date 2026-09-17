@@ -1,0 +1,43 @@
+{#
+/**
+ * @file
+ * Twig template for the IBM APIC password reset form (apic.resetpw route).
+ *
+ * This form is reached via the one-time reset link in the password reset email
+ * (/user/forgot-password?token=...) and allows the user to set a new password.
+ *
+ * Available variables:
+ * - attributes: HTML attributes for the form element.
+ * - children: The rendered form fields.
+ *
+ * @see template_preprocess_form()
+ * @see \Drupal\auth_apic\Form\ApicUserPasswordResetForm
+ *
+ * @ingroup themeable
+ */
+#}
+{% set ur_count_class = user_registry_count ? 'ur-count-' ~ user_registry_count %}
+
+<div class="apic-user-form apic-user-form-reset-pwd {{ ur_count_class }}">
+  <div class="apic-reset-wrapper">
+    <div class="apic-portal-title">{{ site_name }}</div>
+
+    <h1 class="apic-user-form-header">
+      {% trans %}Reset password{% endtrans %}
+    </h1>
+
+    <div class="apic-user-form-wrapper">
+      <div class="apic-user-form-container">
+        <div class="apic-user-form-inner-wrapper">
+          {{ form }}
+        </div>
+      </div>
+    </div>
+
+    <div class="apic-user-form-footer">
+      <div class="apic-user-form-text">
+        <a href="{{ path('user.login') }}">{% trans %}Back to Sign in{% endtrans %}</a>
+      </div>
+    </div>
+  </div>
+</div>

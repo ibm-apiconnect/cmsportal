@@ -1,9 +1,9 @@
---- core/lib/Drupal/Core/Routing/UrlGenerator.php	2025-12-17 09:51:20
-+++ core/lib/Drupal/Core/Routing/UrlGenerator.php	2025-12-17 10:34:35
-@@ -197,12 +197,17 @@
+--- core/lib/Drupal/Core/Routing/UrlGenerator.php
++++ core/lib/Drupal/Core/Routing/UrlGenerator.php
+@@ -218,12 +218,17 @@
        if ('variable' === $token[0]) {
          if (!$optional || !array_key_exists($token[3], $defaults) || (isset($mergedParams[$token[3]]) && (string) $mergedParams[$token[3]] !== (string) $defaults[$token[3]])) {
-           // Check requirement
+           // Check requirement.
 -          if (!preg_match('#^' . $token[2] . '$#', $mergedParams[$token[3]])) {
 -            $message = sprintf('Parameter "%s" for route "%s" must match "%s" ("%s" given) to generate a corresponding URL.', $token[3], $name, $token[2], $mergedParams[$token[3]]);
 -            throw new InvalidParameterException($message);
@@ -13,7 +13,7 @@
 +              throw new InvalidParameterException($message);
 +            }
 +            $url = $token[1] . $mergedParams[$token[3]] . $url;
-+           }
++          }
 +          else {
 +            $url = $token[1] . $url;
            }
@@ -22,7 +22,7 @@
            $optional = FALSE;
          }
        }
-@@ -340,13 +345,16 @@
+@@ -362,13 +367,16 @@
        if (isset($options['https'])) {
          if ($options['https'] === TRUE) {
            $base_url = str_replace('http://', 'https://', $base_url);
@@ -39,7 +39,8 @@
        return $collect_bubbleable_metadata ? $generated_url->setGeneratedUrl($url) : $url;
      }
  
-@@ -381,6 +389,14 @@
+@@ -402,6 +410,14 @@
+     if ($collect_bubbleable_metadata) {
        $generated_url->addCacheContexts(['url.site']);
      }
      $url = $scheme . '://' . $host . $port . $base_url . $path . $query . $fragment;

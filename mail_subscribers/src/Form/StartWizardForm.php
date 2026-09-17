@@ -65,7 +65,7 @@ class StartWizardForm extends FormBase {
       $options =array_merge(['list' => t('Selected list')],$options);
       $form['list'] = [
         '#type' => 'select',
-        '#title' => 'Email lists',
+        '#title' => t('Email lists'),
         '#description' => t('Select a predefined list to send emails to.'),
         '#required' => False,
         '#weight' => 0,

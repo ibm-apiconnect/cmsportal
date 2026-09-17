@@ -180,8 +180,11 @@ class ProductController extends ControllerBase {
         $enforced = TRUE;
         if (isset($apiNode->api_swagger->value)) {
           $swagger = unserialize($apiNode->api_swagger->value, ['allowed_classes' => FALSE]);
-          if (!isset($swagger['x-ibm-configuration']) || !is_array($swagger['x-ibm-configuration']) || empty($swagger['x-ibm-configuration']) || $swagger['x-ibm-configuration']['enforced'] === FALSE) {
-            $enforced = FALSE;
+          if (isset($swagger['x-ibm-configuration']) && is_array($swagger['x-ibm-configuration']) && !empty($swagger['x-ibm-configuration']) && array_key_exists('enforced', $swagger['x-ibm-configuration'])) {
+            $enforced = $swagger['x-ibm-configuration']['enforced'];
+          }
+          if ($enforced !== TRUE && $enforced !== FALSE) {
+            $enforced = TRUE;
           }
         }
          
@@ -250,7 +253,7 @@ class ProductController extends ControllerBase {
    *
    * @return string
    */
-  public function productApiTitle(NodeInterface $apiNode = NULL): string {
+  public function productApiTitle(?NodeInterface $apiNode = NULL): string {
     if ($apiNode !== NULL && $apiNode->bundle() === 'api') {
       $returnValue = $apiNode->getTitle();
     }
@@ -267,7 +270,7 @@ class ProductController extends ControllerBase {
    *
    * @return NULL|array|RedirectResponse
    */
-  public function select(NodeInterface $apiNode = NULL) {
+  public function select(?NodeInterface $apiNode = NULL) {
     $products = [];
 
     if ($apiNode !== NULL && $apiNode->id()) {
@@ -324,12 +327,12 @@ class ProductController extends ControllerBase {
   }
   protected function checkAccessToProduct(?\Drupal\node\NodeInterface $product): bool {
     if (!$product || $product->bundle() !== 'product') {
-      \Drupal::messenger()->addWarning('Product not found or invalid.');
+      \Drupal::messenger()->addWarning(t('Product not found or invalid.'));
       return false;
     }
 
     if (!$product->access('view')) {
-      \Drupal::messenger()->addWarning('You do not have permission to access this product.');
+      \Drupal::messenger()->addWarning(t('You do not have permission to access this product.'));
       return false;
     }
 

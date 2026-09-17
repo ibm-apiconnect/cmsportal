@@ -65,11 +65,14 @@ class UploadImageForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state, NodeInterface $appId = NULL): array {
+  public function buildForm(array $form, FormStateInterface $form_state): array {
     ibm_apim_entry_trace(__CLASS__ . '::' . __FUNCTION__, NULL);
-    if ($appId !== NULL) {
-      $this->node = $appId;
+    $route_match = \Drupal::routeMatch();
+    if ($route_match->getParameter('appId') !== NULL) {
+      // The AppIdParamConverter has already converted the appId to a node
+      $this->node = $route_match->getParameter('appId');
     }
+ 
     $form['intro'] = ['#markup' => '<p>' . t('Use this form to upload an image or icon for this application.') . '</p>'];
 
     $form['image'] = [

@@ -171,7 +171,9 @@ class ApicUserPasswordResetForm extends FormBase {
       $user_url = explode("/", $resetPasswordObject->getPayload()['sub']);
       $user_id = end($user_url);
       $database = \Drupal::database();
-      $query = $database->query("SELECT entity_id FROM user__apic_url WHERE apic_url_value LIKE '%$user_id'");
+      // Use parameterized query to prevent SQL injection
+      $query = $database->query("SELECT entity_id FROM user__apic_url WHERE apic_url_value LIKE :user_id",
+        [':user_id' => '%' . $database->escapeLike($user_id) . '%']);
       $result = $query->fetchAll();
       if (is_array($result) && sizeof($result) === 1) {
         $entity_id = $result[0]->entity_id;

@@ -48,10 +48,10 @@
       <div class="apicCardIcon">
         <img class="bx--about__icon" src="{{- placeholderUrl -}}" alt=""/>
       </div>
-      <div class="apicProductRating" role="form"  aria-label="apic-product-rating-{{ node.id }}">
-        {{ content.apic_rating }}
-      </div>
     {% endif %}
+    <div class="apicProductRating" role="form"  aria-label="apic-product-rating-{{ node.id }}">
+      {{ content.apic_rating }}
+    </div>
     <div class="apicProductCardMain">
       <div class="bx--about__title--name" data-toggle="tooltip" data-placement="bottom"
            title="{{- node.title[0].value -}}">

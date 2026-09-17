@@ -134,3 +134,155 @@
   top: auto !important;
   z-index: auto !important;
 }
+
+.ck-body-wrapper,
+.ck.ck-balloon-panel.ck-powered-by-balloon {
+  display: none !important;
+}
+
+/* Fix CKEditor toolbar button spacing for accessibility (12px minimum between targets) */
+.ck.ck-toolbar .ck-toolbar__items {
+  gap: 4px; /* Add gap between toolbar items */
+}
+
+.ck.ck-toolbar .ck-toolbar__items > .ck-button {
+  margin: 0 4px; /* 4px on each side = 8px between buttons + 4px gap = 12px total */
+}
+
+/* Ensure separators don't interfere with spacing */
+.ck.ck-toolbar .ck-toolbar__separator {
+  margin: 0 4px;
+}
+
+.ck.ck-toolbar .ck-button {
+  min-width: 32px;  /* Minimum touch target size */
+  min-height: 32px; /* Minimum touch target size */
+  padding: 6px;     /* Additional padding for better spacing */
+   display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* CKEditor 5 Dropdown Fixes */
+
+
+.ck.ck-dropdown.ck-dropdown {
+  position: relative ;
+  display: inline-block ;
+}
+
+
+/* Code Block Dropdown */
+.ck.ck-code-block-dropdown.ck-code-block-dropdown .ck-dropdown__panel.ck-dropdown__panel,
+.ck.ck-heading-dropdown.ck-heading-dropdown .ck-dropdown__panel.ck-dropdown__panel {
+  position: absolute ;
+  top: 100% ;
+  left: 0 ;
+  margin-top: 2px ;
+  min-width: 150px ;
+  width: max-content ;
+  min-height: auto ;
+  max-height: 300px ;
+  overflow-y: auto ;
+}
+
+.ck.ck-code-block-dropdown.ck-code-block-dropdown .ck-list__item.ck-list__item,
+.ck.ck-heading-dropdown.ck-heading-dropdown .ck-list__item.ck-list__item {
+  background: transparent ;
+  padding: 4px 16px ;
+  text-align: left ;
+  min-width: 150px ;
+}
+
+.ck.ck-code-block-dropdown.ck-code-block-dropdown .ck-list__item.ck-list__item:hover {
+  background: transparent ;
+}
+
+.ck.ck-code-block-dropdown.ck-code-block-dropdown .ck-list__item.ck-list__item.ck-on {
+  background: $focus ;
+  color: #fff ;
+}
+/* Override CKEditor default 18em width on heading dropdown to match code block dropdown */
+.ck.ck-dropdown.ck-heading-dropdown .ck-dropdown__panel .ck-list__item {
+  min-width: 150px !important ;
+}
+
+
+/* Table Insert Dropdown */
+.ck.ck-insert-table-dropdown.ck-insert-table-dropdown .ck-dropdown__panel.ck-dropdown__panel {
+  position: absolute ;
+  top: 100% ;
+  left: 0 ;
+  margin-top: 2px ;
+}
+
+.ck.ck-insert-table-dropdown.ck-insert-table-dropdown:not(.ck-dropdown_open) .ck-dropdown__panel.ck-dropdown__panel {
+  display: none ;
+  visibility: hidden ;
+}
+
+/* Ensure dropdown is visible when open */
+.ck.ck-dropdown__panel.ck-dropdown__panel.ck-dropdown__panel-visible,
+.ck.ck-dropdown_open.ck-dropdown_open .ck-dropdown__panel.ck-dropdown__panel {
+  display: block ;
+  visibility: visible ;
+  opacity: 1 ;
+}
+
+/* Editor positioning */
+.ck.ck-editor__editable {
+  position: relative;
+  z-index: 1;
+}
+
+.ck.ck-toolbar {
+  position: relative;
+  z-index: 2;
+}
+
+/* Dropdown list items */
+.ck.ck-dropdown__panel .ck-list__item {
+  min-width: 100%;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* Table Grid Box Sizing - Compact matrix with visible borders */
+.ck.ck-dropdown__panel .ck-insert-table-dropdown-grid-box {
+  width: 15px ;
+  height: 15px ;
+  min-width: 15px ;
+  min-height: 15px ;
+  margin: 0 ;
+  padding: 0 ;
+  border: 1px solid #d1d1d1 ;
+  background: #fff ;
+  box-sizing: border-box ;
+  display: inline-block ;
+}
+
+.ck.ck-dropdown__panel .ck-insert-table-dropdown-grid-box:hover {
+  background: #e6f2ff ;
+  border-color: $focus ;
+}
+
+/* Table grid container - tight matrix layout */
+.ck.ck-dropdown__panel .ck-insert-table-dropdown__grid {
+  display: inline-grid ;
+  grid-template-columns: repeat(10, 15px) ;
+  grid-auto-rows: 16px ;
+  gap: 0 ;
+  padding: 5px ;
+  line-height: 0 ;
+}
+
+/* Table label showing dimensions */
+.ck.ck-dropdown__panel .ck-insert-table-dropdown__label {
+  display: block ;
+  text-align: center ;
+  padding: 8px ;
+  font-size: 13px ;
+  color: #333 ;
+  border-top: 1px solid #e0e0e0 ;
+  margin-top: 8px ;
+}

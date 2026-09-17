@@ -38,15 +38,6 @@ class NewsHooks {
    * @return array
    */
 
-  #[Hook('theme')]
-  public function theme($existing, $type, $theme, $path): array {
-    return [
-      'home_page_news_block' => [
-        'variables' => ['newsContainer' => NULL],
-      ]
-    ];
-  }
-
   #[Hook('entity_insert')]
   function entity_insert(EntityInterface $entity) : void {
     $route_name = \Drupal::routeMatch()->getRouteName();

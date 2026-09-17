@@ -48,3 +48,14 @@
   border: unset;
   border-bottom: 1px solid #8d8d8d;
 }
+
+.ui-dialog .ui-dialog-title {
+  float: none;           
+  width: auto;          
+  white-space: normal;   
+  overflow: visible;     
+  text-overflow: unset;  
+  margin: 0;             
+  font-size: 1.25rem;    
+  font-weight: 500;
+}

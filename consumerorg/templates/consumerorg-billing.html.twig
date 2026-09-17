@@ -57,23 +57,23 @@
         </div>
         <div class="organizationTabs">
           <ul role="tablist">
-            <li role="tab" class="orgManage" aria-selected="false" tabindex="0"><a href="{{- path('ibm_apim.myorg') -}}">{% trans %}Manage{% endtrans %}</a></li>
+            <li role="tab" class="orgManage" aria-selected="false" tabindex="-1"><a href="{{- path('ibm_apim.myorg') -}}">{% trans %}Manage{% endtrans %}</a></li>
             {% if analytics_access %}
-              <li role="tab" class="orgAnalytics" aria-selected="false" tabindex="0">
+              <li role="tab" class="orgAnalytics" aria-selected="false" tabindex="-1">
                 <a href="{{- path('ibm_apim.analytics') -}}">{% trans %}Analytics{% endtrans %}</a>
               </li>
             {% endif %}
             {% if billing_access %}
-              <li role="tab" class="selected orgBilling" aria-selected="true" tabindex="-1">
+              <li role="tab" class="selected orgBilling" aria-selected="true" tabindex="0">
                 <a href="#">{% trans %}Billing{% endtrans %}</a>
               </li>
             {% endif %}
-            <li role="tab" class="orgActivity" aria-selected="false" tabindex="0">
+            <li role="tab" class="orgActivity" aria-selected="false" tabindex="-1">
               <a href="{{- path('ibm_apim.activity') -}}">{% trans %}Notifications{% endtrans %}</a>
             </li>
             {% if tabs is not empty %}
               {% for tab in tabs %}
-                <li role="tab" class="orgExtraTab" aria-selected="false" tabindex="0">
+                <li role="tab" class="orgExtraTab" aria-selected="false" tabindex="-1">
                   <a href="{{- path(tab.path) -}}">{{ tab.title }}</a>
                 </li>
               {% endfor %}

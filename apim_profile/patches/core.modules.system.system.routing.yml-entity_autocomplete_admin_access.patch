@@ -5,7 +5,7 @@
      _controller: '\Drupal\system\Controller\EntityAutocompleteController::handleAutocomplete'
    requirements:
 -    _access: 'TRUE'
-+    _permission: 'administer site configuration'
++    _ibm_apim_entity_autocomplete_access_check: 'TRUE'
  
  system.csrftoken:
    path: '/session/token'

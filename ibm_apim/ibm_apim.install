@@ -403,6 +403,35 @@ function ibm_apim_update_11101() {
     }
   }
 }
+/**
+ * Update API Explorer performance settings to prevent browser freezing with deeply nested schemas.
+ * Sets api_max_depth to 5 and example_array_items to 1 for better performance.
+ */
+function ibm_apim_update_11102() {
+  $equivalent_update = \Drupal::service('update.update_hook_registry')->getEquivalentUpdate();
+  if ($equivalent_update instanceof \Drupal\Core\Update\EquivalentUpdate) {
+    return $equivalent_update->toSkipMessage();
+  }
+
+  $config = \Drupal::configFactory()->getEditable('ibm_apim.settings');
+  
+  // Update api_max_depth to 5 (from previous default of 9)
+  $current_max_depth = $config->get('api_max_depth');
+  if ($current_max_depth === NULL || $current_max_depth > 5) {
+    $config->set('api_max_depth', 5);
+    \Drupal::logger('ibm_apim')->notice('API Explorer max depth updated to 5 for better performance with deeply nested schemas');
+  }
+  
+  // Update example_array_items to 1 (from previous default of 3)
+  $current_array_items = $config->get('example_array_items');
+  if ($current_array_items === NULL || $current_array_items > 1) {
+    $config->set('example_array_items', 1);
+    \Drupal::logger('ibm_apim')->notice('API Explorer array items updated to 1 for better performance with deeply nested schemas');
+  }
+  
+  $config->save();
+}
+
 
 function ibm_apim_removeConfigDependency($config, $dep) {
   try {
